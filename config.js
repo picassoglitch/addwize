@@ -8,8 +8,8 @@ export const isProd = Boolean(env.VERCEL_ENV) && env.VERCEL_ENV !== 'development
 export const config = {
   // Staff PIN for /admin. Production requires 8+ characters (the admin API is internet-facing).
   adminPin: env.ADMIN_PIN || (isProd ? '' : '4321'),
-  // Shared secret for the iPad + touch screen: open /register?k=KEY and /play?k=KEY once
-  // per device (stored on the device). Required in production.
+  // Optional shared secret to lock registration/play to specific devices (open /register?k=KEY
+  // once per device). Unset = any PC, phone or tablet can register and play.
   kioskKey: env.KIOSK_KEY || '',
 
   timeLimitMs: int(env.TIME_LIMIT_MS, 10_000),
@@ -33,6 +33,5 @@ export const config = {
 export function configProblems() {
   const problems = [];
   if (isProd && config.adminPin.length < 8) problems.push('ADMIN_PIN must be set (8+ characters)');
-  if (isProd && config.kioskKey.length < 12) problems.push('KIOSK_KEY must be set (12+ characters)');
   return problems;
 }

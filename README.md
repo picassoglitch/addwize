@@ -20,13 +20,12 @@ iPad /register ──► folio ADD-1234 ──► Touch screen /play ──► 1
 
 1. Import the GitHub repo into Vercel (Framework preset: *Other*; `vercel.json` sets the rest).
 2. Storage → add **Neon** from the Marketplace and connect it to the project. This sets `DATABASE_URL`.
-3. Set the environment variables below. Production refuses to serve until `ADMIN_PIN` and `KIOSK_KEY` are set.
-4. On each device, open the URL once with the kiosk key. The device remembers it.
+3. Set the environment variables below. Production refuses to serve until `ADMIN_PIN` is set.
 
 | Device | URL | Setup |
 |---|---|---|
-| iPad | `https://<app>/register?k=KIOSK_KEY` | Safari → Share → *Add to Home Screen*, then **Guided Access** |
-| Touch screen | `https://<app>/play?k=KIOSK_KEY` | Chrome kiosk: `chrome --kiosk https://<app>/play` (after the first visit) |
+| iPad (or any phone/PC) | `https://<app>/register` | Safari → Share → *Add to Home Screen*, then **Guided Access** |
+| Touch screen | `https://<app>/play` | Chrome kiosk: `chrome --kiosk https://<app>/play` |
 | Staff | `https://<app>/admin` | `ADMIN_PIN` |
 
 The venue needs internet; there is no offline mode. Test the stand's Wi-Fi (or bring a 4G/5G hotspot).
@@ -47,7 +46,7 @@ Set `DATABASE_URL` to point local dev at a Neon branch instead.
 |---|---|---|
 | `DATABASE_URL` | – | Set by the Neon integration |
 | `ADMIN_PIN` | dev: `4321` | **Required in prod, 8+ chars** |
-| `KIOSK_KEY` | – | **Required in prod, 12+ chars.** Only devices that have it can register, play or poll |
+| `KIOSK_KEY` | – | Optional. If set, only devices opened once with `?k=KEY` can register or play |
 | `TIME_LIMIT_MS` | `10000` | |
 | `MAX_PLAYS_PER_FOLIO` | `1` | Staff can grant +1 from admin |
 | `PRIZE_MAX_MS` | `10000` | Instant prize if found within this time |
