@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staff · Addwize Focus Challenge</title>
+  <link rel="icon" type="image/png" href="/img/favicon-64.png">
+  <link rel="stylesheet" href="/app.css">
+  <style>
+    body { padding: 20px; }
+    main { max-width: 1100px; margin: 0 auto; }
+    header { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+    header img { width: 48px; }
+    header h1 { margin: 0; font-size: 1.5rem; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+    nav button { background: var(--glass); color: var(--text); border: 1px solid var(--glass-line); border-radius: 999px; padding: 8px 16px; font-weight: 600; }
+    nav button.on { background: var(--orange); color: #1a1028; border-color: transparent; }
+    section.panel { padding: 22px; margin-bottom: 18px; }
+    h2 { margin: 0 0 14px; font-size: 1.15rem; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .kpi { padding: 16px; }
+    .kpi .v { font-size: 2rem; font-weight: 800; }
+    .kpi .l { color: var(--muted); font-size: .85rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.08); white-space: nowrap; }
+    th { color: var(--muted); font-weight: 600; }
+    .scroll { overflow-x: auto; }
+    input, select { font: inherit; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--glass-line); border-radius: 10px; padding: 10px 12px; }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .btn.sm { padding: 8px 16px; font-size: .9rem; }
+    #login { max-width: 360px; margin: 15vh auto; padding: 28px; text-align: center; display: grid; gap: 14px; }
+    #login input { font-size: 1.6rem; text-align: center; letter-spacing: .3em; }
+    .ok { color: var(--green); font-weight: 700; }
+    .bad { color: var(--danger); font-weight: 700; }
+    .bars { display: flex; align-items: flex-end; gap: 4px; height: 120px; margin-top: 10px; }
+    .bars div { flex: 1; max-width: 48px; background: linear-gradient(var(--orange), var(--violet)); border-radius: 4px 4px 0 0; min-height: 2px; position: relative; }
+    .bars span { position: absolute; bottom: -18px; left: 0; right: 0; text-align: center; font-size: .65rem; color: var(--muted); }
+    .scenes { display: grid; grid-template-columns: 220px 1fr; gap: 16px; }
+    .scenes ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; align-content: start; }
+    .scenes li { padding: 8px 10px; border-radius: 10px; cursor: pointer; background: rgba(255,255,255,.04); font-size: .85rem; word-break: break-all; }
+    .scenes li.on { outline: 2px solid var(--orange); }
+    .calib { position: relative; display: inline-block; max-width: 100%; cursor: crosshair; }
+    .calib img { max-width: 100%; max-height: 70vh; display: block; border-radius: 10px; }
+    .calib .c { position: absolute; border: 3px solid var(--orange); border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #000; pointer-events: none; }
+    @media (max-width: 700px) { .scenes { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="login" class="glass">
+    <img src="/img/owl.png" alt="" style="width:80px;margin:0 auto">
+    <h2>Modo staff</h2>
+    <input id="pinIn" type="password" inputmode="numeric" placeholder="PIN" autofocus>
+    <button class="btn" id="loginBtn">Entrar</button>
+    <div class="bad" id="loginErr"></div>
+  </div>
+
+  <main id="app" class="hidden">
+    <header>
+      <img src="/img/owl.png" alt="">
+      <h1 class="brand"><span class="add">Add</span><span class="wize">wize</span> · Staff</h1>
+      <nav id="tabs">
+        <button data-tab="stats" class="on">Resumen</button>
+        <button data-tab="people">Participantes</button>
+        <button data-tab="prizes">Premios</button>
+        <button data-tab="raffle">Rifa</button>
+        <button data-tab="scenes">Escenas</button>
+        <button data-tab="export">Exportar</button>
+      </nav>
+    </header>
+
+    <div data-panel="stats">
+      <section class="panel glass"><div class="kpis" id="kpis"></div></section>
+      <section class="panel glass"><h2>Registros por hora</h2><div class="bars" id="bars"></div><div style="height:18px"></div></section>
+      <section class="panel glass"><h2>Leaderboard</h2><div class="scroll"><table id="lb"></table></div></section>
+    </div>
+
+    <div data-panel="people" class="hidden">
+      <section class="panel glass">
+        <div class="row" style="margin-bottom:12px">
+          <input id="q" placeholder="Buscar folio, nombre o correo" style="flex:1;min-width:200px">
+        </div>
+        <div class="scroll"><table id="people"></table></div>
+      </section>
+    </div>
+
+    <div data-panel="prizes" class="hidden">
+      <section class="panel glass">
+        <h2>Entregar premio instantáneo</h2>
+        <p class="muted">Escribe el código que muestra la pantalla del participante. Cada código solo se puede entregar una vez.</p>
+        <div class="row">
+          <input id="code" placeholder="OWL-0000" style="font-size:1.4rem;width:220px;text-transform:uppercase">
+          <button class="btn" id="redeem">Marcar entregado</button>
+        </div>
+        <p id="redeemOut"></p>
+      </section>
+    </div>
+
+    <div data-panel="raffle" class="hidden">
+      <section class="panel glass">
+        <h2>Rifa final</h2>
+        <p class="muted">El sorteo se muestra en la pantalla touch. Participan registros únicos con aviso de privacidad aceptado que no hayan ganado antes.</p>
+        <p>Participantes elegibles: <b id="pool">–</b></p>
+        <div class="row">
+          <input id="rLabel" placeholder="Etiqueta (p. ej. Premio mayor)" style="min-width:240px">
+          <label class="row" style="gap:6px"><input type="checkbox" id="rShow"> Mostrar nombre (iniciales) en pantalla</label>
+          <button class="btn" id="draw">🎟️ Sortear ahora</button>
+        </div>
+        <p id="drawOut"></p>
+        <div class="scroll"><table id="draws"></table></div>
+      </section>
+    </div>
+
+    <div data-panel="scenes" class="hidden">
+      <section class="panel glass">
+        <h2>Escenas del juego</h2>
+        <p class="muted">Copia las ilustraciones (vertical, mismo formato que la pantalla) a <code>public/scenes/</code>. Selecciona una, toca dónde está el búho y ajusta el tamaño del círculo. Sin escenas activas, el juego usa escenas generadas automáticamente.</p>
+        <div class="scenes">
+          <ul id="sceneList"></ul>
+          <div id="sceneEdit" class="muted">Selecciona una escena.</div>
+        </div>
+      </section>
+    </div>
+
+    <div data-panel="export" class="hidden">
+      <section class="panel glass">
+        <h2>Exportar (CSV para Excel / CRM)</h2>
+        <div class="row">
+          <button class="btn sm" data-export="participants">Participantes</button>
+          <button class="btn sm" data-export="plays">Partidas</button>
+          <button class="btn sm" data-export="raffle">Ganadores de rifa</button>
+        </div>
+        <p id="exportOut" class="muted"></p>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/admin.js"></script>
+</body>
+</html>

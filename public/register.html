@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Registro · Addwize Focus Challenge</title>
+  <link rel="icon" type="image/png" href="/img/favicon-64.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="/app.css">
+  <style>
+    body { min-height: 100dvh; display: grid; place-items: center; padding: 24px; }
+    main { width: min(720px, 100%); }
+    header { display: flex; align-items: center; gap: 18px; margin-bottom: 20px; }
+    header img { width: 84px; }
+    header h1 { margin: 0; font-size: 2.1rem; line-height: 1; }
+    header p { margin: 6px 0 0; color: var(--muted); }
+    .card { padding: 28px; }
+    form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .full { grid-column: 1 / -1; }
+    label.field { display: grid; gap: 6px; font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+    input, select {
+      font: inherit; font-size: 1.15rem; color: var(--text); background: rgba(255,255,255,0.06);
+      border: 1px solid var(--glass-line); border-radius: 14px; padding: 14px 16px; width: 100%;
+      -webkit-appearance: none; appearance: none;
+    }
+    input:focus, select:focus { outline: 2px solid var(--cyan); border-color: transparent; }
+    select option { color: #111; }
+    .check { display: flex; gap: 12px; align-items: flex-start; font-size: 0.95rem; line-height: 1.35; }
+    .check input { width: 26px; height: 26px; flex: none; margin: 0; accent-color: var(--orange); -webkit-appearance: auto; appearance: auto; }
+    .check a { color: var(--orange); }
+    .actions { display: flex; justify-content: flex-end; align-items: center; gap: 16px; }
+    .error { color: var(--danger); font-weight: 600; min-height: 1.2em; }
+    @media (max-width: 560px) { form { grid-template-columns: 1fr; } }
+
+    /* Folio screen */
+    #done { text-align: center; padding: 48px 28px; }
+    #done .kicker { letter-spacing: 0.2em; font-weight: 700; color: var(--orange); }
+    #done .hello { font-size: 1.6rem; margin: 8px 0 24px; }
+    .folio {
+      display: inline-block; font-size: clamp(3.5rem, 12vw, 6.5rem); font-weight: 900; letter-spacing: 0.04em;
+      padding: 12px 36px; border-radius: 24px; color: var(--orange);
+      background: rgba(255, 159, 28, 0.08); border: 2px solid rgba(255, 159, 28, 0.6);
+      box-shadow: 0 0 60px rgba(255, 159, 28, 0.25);
+    }
+    .folio .pre { color: var(--muted); font-weight: 700; }
+    .steps { margin: 28px auto 8px; max-width: 460px; text-align: left; display: grid; gap: 10px; font-size: 1.15rem; }
+    .steps b { color: var(--orange); }
+    dialog { max-width: 640px; width: calc(100% - 32px); max-height: 80dvh; padding: 0; border: 0; border-radius: var(--radius); background: #15153a; color: var(--text); }
+    dialog::backdrop { background: rgba(0,0,0,0.6); }
+    dialog .body { padding: 24px 28px; overflow: auto; max-height: calc(80dvh - 80px); }
+    dialog .foot { padding: 14px 28px; display: flex; justify-content: flex-end; border-top: 1px solid var(--glass-line); }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img src="/img/owl.png" alt="">
+      <div>
+        <h1 class="brand"><span class="add">Add</span><span class="wize">wize</span> Focus Challenge</h1>
+        <p>Regístrate, recibe tu folio y encuentra al búho en la pantalla.</p>
+      </div>
+    </header>
+
+    <section id="formCard" class="card glass">
+      <form id="form" novalidate autocomplete="off">
+        <label class="field full">Nombre completo
+          <input name="name" required autocapitalize="words" placeholder="Dra. Ana Martínez" enterkeyhint="next">
+        </label>
+        <label class="field">Correo electrónico
+          <input name="email" type="email" inputmode="email" autocapitalize="off" required placeholder="ana@hospital.mx" enterkeyhint="next">
+        </label>
+        <label class="field">WhatsApp
+          <input name="phone" type="tel" inputmode="tel" required placeholder="55 1234 5678" enterkeyhint="next">
+        </label>
+        <label class="field full">Institución / Empresa
+          <input name="company" autocapitalize="words" placeholder="Hospital / Consultorio" enterkeyhint="next">
+        </label>
+        <label class="field">Especialidad
+          <select name="specialty" required>
+            <option value="">Selecciona…</option>
+            <option>Paidopsiquiatría</option>
+            <option>Psiquiatría</option>
+            <option>Neuropediatría</option>
+            <option>Neurología</option>
+            <option>Pediatría</option>
+            <option>Medicina general</option>
+            <option>Psicología</option>
+            <option>Otra</option>
+          </select>
+        </label>
+        <label class="field">Subespecialidad (opcional)
+          <input name="subspecialty" autocapitalize="sentences" enterkeyhint="done">
+        </label>
+
+        <label class="check full">
+          <input type="checkbox" name="consentPrivacy">
+          <span>He leído y acepto el <a href="#" id="openPrivacy">aviso de privacidad</a> para participar en la dinámica y en la rifa.</span>
+        </label>
+        <label class="check full">
+          <input type="checkbox" name="consentMarketing">
+          <span>Acepto recibir información científica y comercial de Sun Pharma por correo o WhatsApp. <span class="muted">(opcional)</span></span>
+        </label>
+
+        <div class="full actions">
+          <span class="error" id="err"></span>
+          <button class="btn" id="submit" type="submit">OBTENER MI FOLIO</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="done" class="card glass hidden">
+      <div class="kicker">TU FOLIO</div>
+      <div class="hello" id="hello"></div>
+      <div class="folio"><span class="pre">ADD-</span><span id="folioNum"></span></div>
+      <div class="steps">
+        <div>1. Ve a la <b>pantalla touch</b> y toca <b>JUGAR</b>.</div>
+        <div>2. Escribe tu folio <b id="folioInline"></b>.</div>
+        <div>3. Tienes <b>10 segundos</b> para encontrar al búho.</div>
+      </div>
+      <p class="muted">Tu folio también es tu boleto para la rifa final. Tómale foto 📸</p>
+      <button class="btn ghost" id="again">Nuevo registro</button>
+    </section>
+
+    <p class="disclaimer" style="text-align:center;margin-top:18px">
+      Dinámica de entretenimiento para el stand. No es una prueba diagnóstica ni una evaluación clínica.
+    </p>
+  </main>
+
+  <dialog id="privacy">
+    <div class="body" id="privacyBody">Cargando…</div>
+    <div class="foot"><button class="btn" id="closePrivacy">Entendido</button></div>
+  </dialog>
+
+  <script type="module">
+    import { api, kioskMode } from '/api.js';
+    kioskMode();
+
+    const $ = (id) => document.getElementById(id);
+    const form = $('form');
+    let reqId = crypto.randomUUID?.() ?? String(Math.random()).slice(2);
+    let resetTimer;
+
+    $('openPrivacy').onclick = async (e) => {
+      e.preventDefault();
+      $('privacy').showModal();
+      $('privacyBody').innerHTML = await (await fetch('/aviso.html')).text();
+    };
+    $('closePrivacy').onclick = () => $('privacy').close();
+
+    form.onsubmit = async (e) => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(form));
+      const body = { ...f, consentPrivacy: !!f.consentPrivacy, consentMarketing: !!f.consentMarketing, reqId };
+      if (!f.specialty) return ($('err').textContent = 'Selecciona tu especialidad');
+      $('err').textContent = '';
+      $('submit').disabled = true;
+      $('submit').textContent = 'REGISTRANDO…';
+      // Retry network failures with the same reqId — the server returns the same folio.
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const r = await api('/api/register', { method: 'POST', body });
+          return showFolio(r);
+        } catch (err) {
+          if (err.status) { $('err').textContent = err.message; break; }
+          if (attempt >= 4) { $('err').textContent = 'Sin conexión con el servidor. Intenta de nuevo.'; break; }
+          $('submit').textContent = 'RECONECTANDO…';
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      }
+      $('submit').disabled = false;
+      $('submit').textContent = 'OBTENER MI FOLIO';
+    };
+
+    function showFolio({ folio, name, existing }) {
+      document.activeElement?.blur();
+      const num = folio.replace('ADD-', '');
+      $('folioNum').textContent = num;
+      $('folioInline').textContent = num;
+      $('hello').textContent = existing ? `${name}, ya estabas registrado(a). Tu folio es:` : `¡Listo, ${name}!`;
+      $('formCard').classList.add('hidden');
+      $('done').classList.remove('hidden');
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(reset, 45_000);
+    }
+
+    function reset() {
+      clearTimeout(resetTimer);
+      form.reset();
+      reqId = crypto.randomUUID?.() ?? String(Math.random()).slice(2);
+      $('submit').disabled = false;
+      $('submit').textContent = 'OBTENER MI FOLIO';
+      $('done').classList.add('hidden');
+      $('formCard').classList.remove('hidden');
+      scrollTo(0, 0);
+    }
+    $('again').onclick = reset;
+  </script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{
+  "name": "addwize-focus-challenge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Find-the-owl stand game: iPad registration, touch-screen minigame, leaderboard and raffle.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.2.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
+  }
+}
