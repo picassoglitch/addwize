@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Owl Lab · Addwize</title>
+  <link rel="icon" type="image/png" href="/img/favicon-64.png">
+  <link rel="stylesheet" href="/app.css">
+  <style>
+    body { min-height: 100dvh; display: grid; place-items: center; overflow: hidden; }
+    main { display: grid; gap: 24px; justify-items: center; }
+    #stage { width: min(60vmin, 420px); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="stage"></div>
+    <div class="row">
+      <button class="btn sm" data-a="blink">Parpadeo</button>
+      <button class="btn sm" data-a="hop">Salto</button>
+      <button class="btn sm" data-a="flap">Aleteo</button>
+      <button class="btn sm" data-a="happy">Feliz</button>
+      <button class="btn sm" data-a="sad">Triste</button>
+      <button class="btn sm" data-a="fly">Volar</button>
+    </div>
+    <p class="muted">Mueve el dedo / mouse: el búho te sigue con la mirada.</p>
+  </main>
+  <script type="module">
+    import { createOwl } from '/owl-rig.js';
+    const owl = createOwl(document.getElementById('stage'));
+    window.owl = owl;
+    addEventListener('pointermove', (e) => owl.lookAt(e.clientX, e.clientY));
+    const acts = {
+      blink: () => owl.blink(), hop: () => owl.hop(), flap: () => owl.flap(4), happy: () => owl.happy(),
+      sad: () => owl.sad(), fly: () => owl.flyBy(innerWidth * 0.3, -innerHeight * 0.15),
+    };
+    for (const b of document.querySelectorAll('[data-a]')) b.onclick = () => acts[b.dataset.a]();
+  </script>
+</body>
+</html>

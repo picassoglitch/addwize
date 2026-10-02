@@ -1,4 +1,5 @@
 import { api, liveEvents, toast, fmtSec, esc, kioskMode } from '/api.js';
+import { createOwl } from '/owl-rig.js';
 
 kioskMode();
 
@@ -16,6 +17,12 @@ let config = { timeLimitMs: 10_000, tiers: [] };
 let lastBoard = [];
 let pendingRaffle = null;
 let player = null; // { folio, name, playsLeft, bestMs }
+
+// Live mascots: one lives on the attract screen, the "host" moves between confirm/result/raffle.
+const attractOwl = createOwl($('attractOwl'));
+const hostOwl = createOwl($('confirmSlot'));
+const hostTo = (slot) => hostOwl.mount(slot);
+window.owls = { attractOwl, hostOwl }; // for poking at them from the console
 
 // ---------- screens ----------
 
@@ -36,7 +43,19 @@ const bump = () => {
     idleTimer = setTimeout(() => show('attract'), IDLE[state]);
   }
 };
-document.addEventListener('pointerdown', () => { bump(); unlockAudio(); }, true);
+document.addEventListener('pointerdown', (e) => {
+  bump();
+  unlockAudio();
+  (state === 'attract' ? attractOwl : hostOwl).lookAt(e.clientX, e.clientY);
+}, true);
+addEventListener('pointermove', (e) => (state === 'attract' ? attractOwl : hostOwl).lookAt(e.clientX, e.clientY));
+
+// Every so often the attract owl takes a lap around the screen to catch people walking by.
+setInterval(() => {
+  if (state !== 'attract' || document.hidden) return;
+  const dir = Math.random() < 0.5 ? -1 : 1;
+  attractOwl.flyBy(dir * innerWidth * (0.22 + Math.random() * 0.12), -innerHeight * (0.04 + Math.random() * 0.1));
+}, 20_000);
 for (const b of document.querySelectorAll('[data-go]')) b.onclick = () => show(b.dataset.go);
 
 // ---------- leaderboard ----------
@@ -98,7 +117,9 @@ async function lookup() {
     $('cRow').innerHTML = `<button class="btn" id="notMe">Terminar</button>`;
   }
   $('notMe').onclick = () => show('attract');
+  hostTo($('confirmSlot'));
   show('confirm');
+  hostOwl.hop();
 }
 
 // ---------- game ----------
@@ -108,6 +129,7 @@ let lastSceneId = null; // the server avoids repeating the previous scene / hidi
 
 async function startGame() {
   $('go').disabled = true;
+  hostOwl.flap(3, 0.6, 7);
   let start;
   try {
     start = await api('/api/play/start', { method: 'POST', body: { folio: player.folio, lastSceneId } });
@@ -303,21 +325,34 @@ function showResult(r) {
       <div class="sub">Lugar <b>#${r.rank}</b> en el leaderboard. Tu folio <b>${esc(player.folio)}</b> participa en la rifa final.</div>
       <button class="btn ghost" data-go="attract">Terminar</button>`;
     confetti();
+    $('result').prepend(slotFor());
+    setTimeout(() => hostOwl.happy(), 250);
   } else {
     $('result').innerHTML = `
-      <img class="owlSad" src="/img/owl.png" alt="">
       <h2>El búho se escondió.</h2>
       <div class="sub">${r.error ? 'No pudimos guardar el resultado — avisa al staff. ' : ''}¡Gracias por jugar, ${esc(player.name)}! Tu folio <b>${esc(player.folio)}</b> sigue en la rifa final. 🎟️</div>
       <button class="btn ghost" data-go="attract">Terminar</button>`;
   }
+  if (!r.found) {
+    $('result').prepend(slotFor());
+    setTimeout(() => hostOwl.sad(), 250);
+  }
   $('result').querySelector('[data-go]').onclick = () => show('attract');
   show('result');
+}
+
+function slotFor() {
+  const slot = document.createElement('div');
+  slot.className = 'hostSlot';
+  hostTo(slot);
+  return slot;
 }
 
 // ---------- raffle ----------
 
 function runRaffle(data) {
   pendingRaffle = null;
+  hostTo($('raffleSlot'));
   show('raffle');
   $('rLabel').textContent = data.label ? `THE ADDWIZE DRAW · ${data.label.toUpperCase()}` : 'THE ADDWIZE DRAW';
   $('rName').textContent = '';
@@ -331,6 +366,7 @@ function runRaffle(data) {
       $('rName').textContent = data.winner.name ? `¡Felicidades, ${data.winner.name}!` : '¡Felicidades!';
       confetti(6000);
       beep(990, 0.4);
+      hostOwl.happy();
       setTimeout(() => state === 'raffle' && show('attract'), 90_000);
       return;
     }
@@ -389,7 +425,11 @@ function confetti(ms = 3500) {
 
 liveEvents({
   leaderboard: (b) => { lastBoard = b; if (state === 'attract') renderBoard(); },
-  registered: ({ name }) => { if (state === 'attract') toast(`¡Bienvenid@, ${name}! Toca JUGAR e ingresa tu folio.`); },
+  registered: ({ name }) => {
+    if (state !== 'attract') return;
+    toast(`¡Bienvenid@, ${name}! Toca JUGAR e ingresa tu folio.`);
+    attractOwl.hop();
+  },
   raffle: (d) => (['attract', 'pin', 'confirm', 'raffle'].includes(state) ? runRaffle(d) : (pendingRaffle = d)),
 });
 api('/api/config').then((c) => (config = c)).catch(() => {});

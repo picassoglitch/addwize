@@ -75,6 +75,15 @@ If no scene is active, the game falls back to generated emoji scenes.
 
 Replace `public/aviso.html` with the approved privacy notice.
 
+## Live owl
+
+`public/owl-rig.js` animates the official `/img/owl.png` on a WebGL mesh: breathing, blinking
+(shader-drawn eyelids), head tilts, ear twitches, wing flaps, eyes that follow touches, hops,
+fly-bys, and happy/sad reactions. It's used on the attract screen (it flies a lap every 20 s), the
+confirm/result/raffle screens and the iPad header. Preview every move at `/owl-lab`.
+The owl hidden in the game itself stays still, so motion doesn't give it away.
+For full wing-spread flight, the agency would need to supply the owl as a Rive/Spine rig or alpha video.
+
 ## Integrity
 
 - Folios are random, not sequential. The screen shows the player's name before they start.

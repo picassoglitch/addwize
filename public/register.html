@@ -56,7 +56,7 @@
 <body>
   <main>
     <header>
-      <img src="/img/owl.png" alt="">
+      <div id="headerOwl" style="width:110px;flex:none;margin:-14px -8px -10px"></div>
       <div>
         <h1 class="brand"><span class="add">Add</span><span class="wize">wize</span> Focus Challenge</h1>
         <p>Regístrate, recibe tu folio y encuentra al búho en la pantalla.</p>
@@ -135,6 +135,9 @@
 
   <script type="module">
     import { api, kioskMode } from '/api.js';
+    import { createOwl } from '/owl-rig.js';
+    const owl = createOwl(document.getElementById('headerOwl'));
+    document.addEventListener('focusin', (e) => { const r = e.target.getBoundingClientRect(); owl.lookAt(r.left + r.width / 2, r.top); });
     kioskMode();
 
     const $ = (id) => document.getElementById(id);
@@ -181,6 +184,7 @@
       $('hello').textContent = existing ? `${name}, ya estabas registrado(a). Tu folio es:` : `¡Listo, ${name}!`;
       $('formCard').classList.add('hidden');
       $('done').classList.remove('hidden');
+      owl.happy();
       clearTimeout(resetTimer);
       resetTimer = setTimeout(reset, 45_000);
     }

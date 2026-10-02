@@ -17,7 +17,8 @@
     #attract .logo { font-size: 2.2em; }
     #attract h1 { font-size: 4.4em; line-height: 0.95; margin: 0; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
     #attract h1 span { color: var(--orange); display: block; }
-    #attract .owl { width: 30vmin; animation: bob 2.6s ease-in-out infinite; filter: drop-shadow(0 20px 40px rgba(123,79,214,.6)); }
+    #attract .owl { width: 38vmin; margin: -3vmin 0; filter: drop-shadow(0 20px 40px rgba(123,79,214,.6)); position: relative; z-index: 3; }
+    .hostSlot { width: 26vmin; margin: -2vmin auto; filter: drop-shadow(0 16px 30px rgba(123,79,214,.5)); }
     @keyframes bob { 50% { transform: translateY(-3vmin) rotate(-4deg); } }
     #attract .how { display: flex; gap: 2vmin; flex-wrap: wrap; justify-content: center; }
     #attract .how div { padding: 1.4vmin 2.4vmin; font-weight: 600; }
@@ -99,7 +100,6 @@
     .prize { padding: 2vmin 4vmin; border-color: rgba(52,211,153,.6); }
     .prize .code { font-size: 3.2em; font-weight: 900; letter-spacing: .08em; color: var(--green); }
     #result .sub { font-size: 1.4em; max-width: 26em; }
-    #result .owlSad { width: 22vmin; opacity: .9; animation: peek 2s ease-in-out infinite; }
     @keyframes peek { 50% { transform: translateY(2vmin) rotate(6deg); } }
 
     /* ---------- raffle ---------- */
@@ -118,7 +118,7 @@
     <div class="top">
       <div class="logo brand"><span class="add">Add</span><span class="wize">wize</span></div>
       <h1>Encuentra <span>al búho</span></h1>
-      <img class="owl" src="/img/owl.png" alt="">
+      <div class="owl" id="attractOwl"></div>
       <div class="how">
         <div class="glass">1. Regístrate en el <b>iPad</b></div>
         <div class="glass">2. Ingresa tu <b>folio</b></div>
@@ -142,7 +142,7 @@
 
   <!-- CONFIRM -->
   <section id="confirm" class="screen hidden">
-    <img src="/img/owl.png" alt="" style="width:18vmin">
+    <div class="hostSlot" id="confirmSlot"></div>
     <h2 id="cHello"></h2>
     <p id="cMsg"></p>
     <div class="row" id="cRow"></div>
@@ -165,6 +165,7 @@
   <section id="raffle" class="screen hidden">
     <div class="k" id="rLabel">THE ADDWIZE DRAW</div>
     <h2 class="brand"><span class="add">Add</span><span class="wize">wize</span> Rifa</h2>
+    <div class="hostSlot" id="raffleSlot"></div>
     <div class="reel" id="reel">ADD-0000</div>
     <div class="wname" id="rName"></div>
   </section>
