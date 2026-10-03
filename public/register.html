@@ -138,6 +138,9 @@
     import { createOwl } from '/owl-rig.js';
     const owl = createOwl(document.getElementById('headerOwl'));
     document.addEventListener('focusin', (e) => { const r = e.target.getBoundingClientRect(); owl.lookAt(r.left + r.width / 2, r.top); });
+    // Tap the owl for a trick; picking an option or ticking a box earns a little hop.
+    document.addEventListener('pointerdown', (e) => { if (owl.hits(e.clientX, e.clientY)) owl.react(); }, true);
+    document.addEventListener('change', () => owl.hop(0.08));
     kioskMode();
 
     const $ = (id) => document.getElementById(id);

@@ -23,8 +23,13 @@
       <button class="btn sm" data-a="happy">Feliz</button>
       <button class="btn sm" data-a="sad">Triste</button>
       <button class="btn sm" data-a="fly">Volar</button>
+      <button class="btn sm" data-a="tour">Vuelta</button>
+      <button class="btn sm" data-a="flip">Mortal</button>
+      <button class="btn sm" data-a="wiggle">Baile</button>
+      <button class="btn sm" data-a="hover">Flotar</button>
+      <button class="btn sm" data-a="bobble">Cabeceo</button>
     </div>
-    <p class="muted">Mueve el dedo / mouse: el búho te sigue con la mirada.</p>
+    <p class="muted">Mueve el dedo / mouse: el búho te sigue con la mirada. Tócalo para un truco; toca otro lado y vuela hacia ti.</p>
   </main>
   <script type="module">
     import { createOwl } from '/owl-rig.js';
@@ -33,8 +38,13 @@
     addEventListener('pointermove', (e) => owl.lookAt(e.clientX, e.clientY));
     const acts = {
       blink: () => owl.blink(), hop: () => owl.hop(), flap: () => owl.flap(4), happy: () => owl.happy(),
-      sad: () => owl.sad(), fly: () => owl.flyBy(innerWidth * 0.3, -innerHeight * 0.15),
+      sad: () => owl.sad(), fly: () => owl.flyBy(innerWidth * 0.3, -innerHeight * 0.15), tour: () => owl.tour(),
+      flip: () => owl.trick('flip'), wiggle: () => owl.trick('wiggle'), hover: () => owl.trick('hover'), bobble: () => owl.trick('bobble'),
     };
+    addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      if (owl.hits(e.clientX, e.clientY)) owl.react(); else owl.flyTo(e.clientX, e.clientY);
+    });
     for (const b of document.querySelectorAll('[data-a]')) b.onclick = () => acts[b.dataset.a]();
   </script>
 </body>

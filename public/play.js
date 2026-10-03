@@ -44,19 +44,25 @@ const bump = () => {
     idleTimer = setTimeout(() => show('attract'), IDLE[state]);
   }
 };
+let lastTap = 0;
 document.addEventListener('pointerdown', (e) => {
   bump();
   unlockAudio();
-  (state === 'attract' ? attractOwl : hostOwl).lookAt(e.clientX, e.clientY);
+  lastTap = performance.now();
+  const owl = state === 'attract' ? attractOwl : hostOwl;
+  owl.lookAt(e.clientX, e.clientY);
+  // Every tap gets a reaction: tap the owl for a trick, tap empty space and it flies over to you.
+  if (!['attract', 'confirm', 'result', 'raffle'].includes(state) || !e.isPrimary) return;
+  if (owl.hits(e.clientX, e.clientY)) owl.react();
+  else if (!e.target.closest('button, a, input')) owl.flyTo(e.clientX, e.clientY);
 }, true);
 addEventListener('pointermove', (e) => (state === 'attract' ? attractOwl : hostOwl).lookAt(e.clientX, e.clientY));
 
-// Every so often the attract owl takes a lap around the screen to catch people walking by.
+// When nobody's touching it, the attract owl takes laps around the screen to catch people walking by.
 setInterval(() => {
-  if (state !== 'attract' || document.hidden) return;
-  const dir = Math.random() < 0.5 ? -1 : 1;
-  attractOwl.flyBy(dir * innerWidth * (0.22 + Math.random() * 0.12), -innerHeight * (0.04 + Math.random() * 0.1));
-}, 20_000);
+  if (state !== 'attract' || document.hidden || attractOwl.busy || performance.now() - lastTap < 8000) return;
+  attractOwl.tour();
+}, 12_000);
 for (const b of document.querySelectorAll('[data-go]')) b.onclick = () => show(b.dataset.go);
 
 // ---------- leaderboard ----------
@@ -80,9 +86,9 @@ $('keys').addEventListener('pointerdown', (e) => {
   if (!k) return;
   e.preventDefault();
   $('pinErr').textContent = '';
-  if (k === '⌫') pin = pin.slice(0, -1);
+  if (k === '⌫') { pin = pin.slice(0, -1); hostOwl.flap(2, 0.3, 6); }
   else if (k === 'OK') return lookup();
-  else if (pin.length < 5) pin += k;
+  else if (pin.length < 5) { pin += k; pin.length === 4 ? hostOwl.react() : hostOwl.hop(0.1 + pin.length * 0.03); }
   $('pinDigits').textContent = pin;
   beep(520, 0.03);
 });
@@ -91,12 +97,10 @@ $('playBtn').onclick = () => {
   pin = '';
   $('pinDigits').textContent = '';
   $('pinErr').textContent = '';
+  hostTo($('pinPerch'));
   show('pin');
+  hostOwl.hop();
 };
-$('attract').addEventListener('pointerdown', (e) => {
-  if (e.target.closest('#playBtn')) return;
-  $('playBtn').click();
-});
 
 async function lookup() {
   if (pin.length < 4) return ($('pinErr').textContent = 'El folio tiene 4 dígitos');
@@ -105,6 +109,7 @@ async function lookup() {
   } catch (e) {
     $('pinErr').textContent = e.status === 404 ? 'No encontramos ese folio. Revísalo o regístrate en el iPad.' : e.message;
     beep(180, 0.15);
+    hostOwl.sad();
     return;
   }
   const first = player.name.split(' ')[0];
@@ -120,7 +125,7 @@ async function lookup() {
   $('notMe').onclick = () => show('attract');
   hostTo($('confirmSlot'));
   show('confirm');
-  hostOwl.hop();
+  hostOwl.trick('flip');
 }
 
 // ---------- game ----------

@@ -18,7 +18,7 @@
     #attract h1 { font-size: 4.4em; line-height: 0.95; margin: 0; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
     #attract h1 span { color: var(--orange); display: block; }
     #attract .owl { width: 38vmin; margin: -3vmin 0; filter: drop-shadow(0 20px 40px rgba(123,79,214,.6)); position: relative; z-index: 3; }
-    .hostSlot { width: 26vmin; margin: -2vmin auto; filter: drop-shadow(0 16px 30px rgba(123,79,214,.5)); }
+    .hostSlot { width: 26vmin; margin: -2vmin auto; filter: drop-shadow(0 16px 30px rgba(123,79,214,.5)); position: relative; z-index: 3; }
     @keyframes bob { 50% { transform: translateY(-3vmin) rotate(-4deg); } }
     #attract .how { display: flex; gap: 2vmin; flex-wrap: wrap; justify-content: center; }
     #attract .how div { padding: 1.4vmin 2.4vmin; font-weight: 600; }
@@ -41,6 +41,8 @@
     /* ---------- pin pad ---------- */
     #pin h2 { font-size: 2em; margin: 0 0 .3em; }
     .pinShow { font-size: 4.2em; font-weight: 900; letter-spacing: .08em; margin: .2em 0 .4em; padding: .1em .6em; min-width: 6.5em; border-radius: 24px; border: 2px solid rgba(255,159,28,.5); background: rgba(255,159,28,.07); }
+    .pinShow { position: relative; }
+    .perch { position: absolute; right: -9vmin; bottom: calc(100% - 3vmin); width: 17vmin; z-index: 3; filter: drop-shadow(0 10px 20px rgba(123,79,214,.5)); }
     .pinShow .pre { color: var(--muted); }
     .pinShow .digits { color: var(--orange); }
     .pinShow .cursor { animation: blink 1s steps(1) infinite; color: var(--orange); }
@@ -148,7 +150,7 @@
     <button class="btn ghost back" data-go="attract">← Volver</button>
     <h2>Escribe tu folio</h2>
     <div class="muted">Lo recibiste al registrarte en el iPad</div>
-    <div class="pinShow"><span class="pre">ADD-</span><span class="digits" id="pinDigits"></span><span class="cursor">_</span></div>
+    <div class="pinShow"><div class="perch" id="pinPerch"></div><span class="pre">ADD-</span><span class="digits" id="pinDigits"></span><span class="cursor">_</span></div>
     <div class="keys" id="keys"></div>
     <div class="pinErr" id="pinErr"></div>
   </section>
