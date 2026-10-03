@@ -21,7 +21,8 @@ async function login() {
   setInterval(() => !document.hidden && current === 'stats' && loadStats(), 10_000);
 }
 $('loginBtn').onclick = login;
-$('pinIn').onkeydown = (e) => e.key === 'Enter' && login();
+// Note: an on* handler that returns false cancels the key, so never return the && expression.
+$('pinIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') login(); });
 if (pin) login();
 
 // ---------- tabs ----------
@@ -94,7 +95,7 @@ $('redeem').onclick = async () => {
     $('redeemOut').innerHTML = `<span class="bad">✖ ${esc(e.message)}</span>`;
   }
 };
-$('code').onkeydown = (e) => e.key === 'Enter' && $('redeem').click();
+$('code').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('redeem').click(); });
 
 // ---------- raffle ----------
 

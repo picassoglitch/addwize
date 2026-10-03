@@ -28,7 +28,8 @@
     input, select { font: inherit; color: var(--text); background: rgba(255,255,255,.06); border: 1px solid var(--glass-line); border-radius: 10px; padding: 10px 12px; }
     .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
     .btn.sm { padding: 8px 16px; font-size: .9rem; }
-    #login { max-width: 360px; margin: 15vh auto; padding: 28px; text-align: center; display: grid; gap: 14px; }
+    #login { width: min(360px, 100%); margin: 15vh auto; padding: 28px; text-align: center; display: grid; gap: 14px; }
+    #login input { width: 100%; min-width: 0; }
     #login input { font-size: 1.6rem; text-align: center; letter-spacing: .3em; }
     .ok { color: var(--green); font-weight: 700; }
     .bad { color: var(--danger); font-weight: 700; }
