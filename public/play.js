@@ -186,8 +186,11 @@ async function buildField(scene) {
       const light = document.createElement('div');
       light.className = 'light';
       const mx = (x) => `${(scene.mirror ? 1 - x : x) * 100}%`;
-      light.style.setProperty('--lamp-x', mx(0.08));
-      light.style.setProperty('--win-x', mx(0.36));
+      const { lamp = [0.08, 0.07], win = [0.36, 0.34] } = scene.lights ?? {};
+      light.style.setProperty('--lamp-x', mx(lamp[0]));
+      light.style.setProperty('--lamp-y', `${lamp[1] * 100}%`);
+      light.style.setProperty('--win-x', mx(win[0]));
+      light.style.setProperty('--win-y', `${win[1] * 100}%`);
       field.append(light);
     }
     if (scene.timerBox) {

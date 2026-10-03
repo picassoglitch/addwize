@@ -79,17 +79,21 @@ def main(pdf):
     nx, ny = (lambda v: round(v / W, 4)), (lambda v: round(v / H, 4))
     timer = {'x': nx(TIMER[0]), 'y': ny(TIMER[1]), 'w': nx(TIMER[2] - TIMER[0]), 'h': ny(TIMER[3] - TIMER[1]),
              'bg': '#011d4e'}
+    lights = {'lamp': [0.08, 0.07], 'win': [0.36, 0.34]}
     scenes = [
         {'id': 'aula', 'image': '/scenes/aula.jpg', 'mirrorImage': '/scenes/aula-mirror.jpg', 'weight': 1,
-         'enabled': True, 'timerBox': timer,
+         'enabled': True, 'timerBox': timer, 'lights': lights,
          'owl': {'x': nx(BAKED_OWL[0]), 'y': ny(BAKED_OWL[1]), 'r': nx(BAKED_OWL[2])}},
         {'id': 'aula-variable', 'image': '/scenes/aula-variable.jpg', 'mirrorImage': '/scenes/aula-variable-mirror.jpg',
-         'weight': 3, 'enabled': True, 'timerBox': timer,
+         'weight': 3, 'enabled': True, 'timerBox': timer, 'lights': lights,
          'sprite': '/img/owl.png',
          'spots': [{'x': nx(x), 'y': ny(y), 'r': nx(s / 2)} for x, y, s in SPOTS]},
     ]
-    with open(os.path.join(OUT, 'scenes.default.json'), 'w') as f:
-        json.dump(scenes, f, indent=2)
+    path = os.path.join(OUT, 'scenes.default.json')
+    ours = {s['id'] for s in scenes}
+    others = [s for s in json.load(open(path)) if s['id'] not in ours] if os.path.exists(path) else []
+    with open(path, 'w') as f:
+        json.dump(scenes + others, f, indent=2)
     print(f'wrote {OUT}/aula.jpg, aula-variable.jpg, scenes.default.json ({OUT_W}x{out_h})')
 
 
