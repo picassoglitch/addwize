@@ -7,6 +7,7 @@ straightens it, upscales it to the touch-screen width, and produces two scenes:
   aula.jpg           the art as designed, owl on the bookshelf (fixed position)
   aula-variable.jpg  same art with the owl painted out; the server drops the official
                      mascot (/img/owl.png) into one of SPOTS per play
+  *-mirror.jpg       mirrored versions (banner, timer, poster and icon bar kept readable)
 
 Usage: python3 scripts/extract_deck_art.py "~/Downloads/ADDWIZE FOCUS CHALLENGE.pdf"
 Needs poppler-utils (pdfimages) and Pillow. Replace with hi-res originals when available.
@@ -29,6 +30,23 @@ SPOTS = [(668, 604, 120), (700, 318, 80), (250, 655, 80), (330, 790, 85), (115, 
          (560, 640, 70), (150, 560, 70)]
 # The art's built-in "10.0" readout; the game draws the live clock over it.
 TIMER = (372, 180, 560, 268)
+# Elements with text stay readable in the mirrored scenes: pasted back unflipped (x0, y0, x1, y1, radius).
+KEEP_UNFLIPPED = [(118, 28, 702, 206, 40),    # FIND THE OWL banner
+                  (245, 158, 582, 314, 26),   # timer box
+                  (8, 380, 160, 645, 10),     # SUEÑA / EXPLORA poster
+                  (14, 1146, 768, 1298, 50)]  # icon bar
+
+
+def mirrored(img):
+    out = img.transpose(Image.FLIP_LEFT_RIGHT)
+    for x0, y0, x1, y1, rad in KEEP_UNFLIPPED:
+        piece = img.crop((x0, y0, x1, y1))
+        mask = Image.new('L', piece.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle((2, 2, piece.width - 3, piece.height - 3), rad, fill=255)
+        # The poster moves to the other wall with the rest of the room; the UI stays where it was.
+        x = W - x1 if (x0, y0) == (8, 380) else x0
+        out.paste(piece, (x, y0), mask.filter(ImageFilter.GaussianBlur(2)))
+    return out
 
 
 def main(pdf):
@@ -55,14 +73,18 @@ def main(pdf):
     os.makedirs(OUT, exist_ok=True)
     save(art, 'aula.jpg')
     save(clean, 'aula-variable.jpg')
+    save(mirrored(art), 'aula-mirror.jpg')
+    save(mirrored(clean), 'aula-variable-mirror.jpg')
 
     nx, ny = (lambda v: round(v / W, 4)), (lambda v: round(v / H, 4))
     timer = {'x': nx(TIMER[0]), 'y': ny(TIMER[1]), 'w': nx(TIMER[2] - TIMER[0]), 'h': ny(TIMER[3] - TIMER[1]),
              'bg': '#011d4e'}
     scenes = [
-        {'id': 'aula', 'image': '/scenes/aula.jpg', 'enabled': True, 'timerBox': timer,
+        {'id': 'aula', 'image': '/scenes/aula.jpg', 'mirrorImage': '/scenes/aula-mirror.jpg', 'weight': 1,
+         'enabled': True, 'timerBox': timer,
          'owl': {'x': nx(BAKED_OWL[0]), 'y': ny(BAKED_OWL[1]), 'r': nx(BAKED_OWL[2])}},
-        {'id': 'aula-variable', 'image': '/scenes/aula-variable.jpg', 'enabled': True, 'timerBox': timer,
+        {'id': 'aula-variable', 'image': '/scenes/aula-variable.jpg', 'mirrorImage': '/scenes/aula-variable-mirror.jpg',
+         'weight': 3, 'enabled': True, 'timerBox': timer,
          'sprite': '/img/owl.png',
          'spots': [{'x': nx(x), 'y': ny(y), 'r': nx(s / 2)} for x, y, s in SPOTS]},
     ]

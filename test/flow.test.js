@@ -129,3 +129,27 @@ test('variable scene never repeats the previous hiding spot', async () => {
     last = data.scene.id;
   }
 });
+
+test('plays vary: mirrored scenes, lighting moods and owl sizes, with the hit target mirrored too', async () => {
+  const ids = new Set(), moods = new Set(), sizes = new Set();
+  let sawMirror = false;
+  for (let n = 20; n < 50; n++) {
+    const { data: reg } = await call('/api/register', person(n));
+    const { data } = await call('/api/play/start', { folio: reg.folio });
+    ids.add(data.scene.id.split('@')[0]);
+    moods.add(data.scene.mood);
+    sizes.add(data.scene.owl.r);
+    if (data.scene.mirror) {
+      sawMirror = true;
+      assert.match(data.scene.image, /-mirror\.jpg$/);
+    }
+    // Tapping exactly where the scene says the owl is must count, mirrored or not.
+    const fin = await call('/api/play/finish', { playId: data.playId, found: true, ms: 200,
+      tap: { x: data.scene.owl.x, y: data.scene.owl.y }, aspect: 0.6 });
+    assert.equal(fin.data.found, true);
+  }
+  assert.ok(sawMirror, 'expected some mirrored scenes');
+  assert.ok(moods.size >= 2, 'expected several lighting moods');
+  assert.ok(ids.size >= 10, `expected many distinct variants, got ${ids.size}`);
+  assert.ok(sizes.size >= 5, 'expected the owl size to vary');
+});

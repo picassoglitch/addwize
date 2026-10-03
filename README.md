@@ -66,6 +66,14 @@ extracted and straightened by `scripts/extract_deck_art.py`. It rotates between 
   Addwize mascot (`/img/owl.png`) into one of 12 hiding spots, never the same spot twice in a row.
 
 Both scenes keep the art's "FIND THE OWL" header, and the live clock is drawn over its "10.0" box.
+
+So players can't learn the answer, every play also randomises:
+- **Mirroring:** the room flips (`*-mirror.jpg`), but the banner, timer, poster and icon bar stay readable.
+- **Lighting:** day, sunset or night. Night is a dark room lit by the lamp, and noticeably harder.
+- **Owl size:** ±12% in the variable scene.
+- **Scene weight:** the variable scene comes up 3× as often as the fixed one.
+
+That's ~150 distinct rounds from one illustration, and the same variant never appears twice in a row.
 Settings live in `public/scenes/scenes.default.json`, and staff edits are saved in the database (`settings` table).
 
 The deck only has this scene as a low-resolution mockup (~390×650, upscaled), so ask The Bro Media for

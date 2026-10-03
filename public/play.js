@@ -23,6 +23,7 @@ const attractOwl = createOwl($('attractOwl'));
 const hostOwl = createOwl($('confirmSlot'));
 const hostTo = (slot) => hostOwl.mount(slot);
 window.owls = { attractOwl, hostOwl }; // for poking at them from the console
+window.debugScene = (scene) => { show('game'); return buildField(scene); }; // render a scene variant by hand
 
 // ---------- screens ----------
 
@@ -178,6 +179,16 @@ async function buildField(scene) {
     if (scene.sprite) {
       // Variable scene: the mascot is dropped into the hiding spot the server picked.
       await placeOwl(field, scene.sprite, scene.owl.x * fw, scene.owl.y * fh, scene.owl.r * 2 * fw, 0);
+    }
+    if (scene.mood && scene.mood !== 'day') {
+      // Lighting mood: the art is tinted (CSS) and lit from the lamp / window, which swap sides when mirrored.
+      field.classList.add(`mood-${scene.mood}`);
+      const light = document.createElement('div');
+      light.className = 'light';
+      const mx = (x) => `${(scene.mirror ? 1 - x : x) * 100}%`;
+      light.style.setProperty('--lamp-x', mx(0.08));
+      light.style.setProperty('--win-x', mx(0.36));
+      field.append(light);
     }
     if (scene.timerBox) {
       // Live clock drawn over the readout baked into the artwork.

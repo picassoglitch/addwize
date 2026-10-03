@@ -2,6 +2,8 @@
   {
     "id": "aula",
     "image": "/scenes/aula.jpg",
+    "mirrorImage": "/scenes/aula-mirror.jpg",
+    "weight": 1,
     "enabled": true,
     "timerBox": {
       "x": 0.4769,
@@ -19,6 +21,8 @@
   {
     "id": "aula-variable",
     "image": "/scenes/aula-variable.jpg",
+    "mirrorImage": "/scenes/aula-variable-mirror.jpg",
+    "weight": 3,
     "enabled": true,
     "timerBox": {
       "x": 0.4769,
