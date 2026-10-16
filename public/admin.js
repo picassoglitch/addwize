@@ -74,13 +74,13 @@ async function loadPeople() {
       <td><b>${r.folio}</b></td><td>${esc(r.name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td>
       <td>${esc(r.specialty)}</td><td>${r.plays}${r.extra_plays ? ` (+${r.extra_plays})` : ''}</td>
       <td>${r.best_ms ? `${fmtSec(r.best_ms)} s` : '–'}</td><td>${esc(r.prizes ?? '')}</td>
-      <td><button class="btn ghost sm" data-extra="${r.folio}">+1 intento</button></td></tr>`).join('');
+      <td><button class="btn ghost sm" data-extra="${r.folio}">+1 ronda</button></td></tr>`).join('');
 }
 $('people').onclick = async (e) => {
   const folio = e.target.dataset.extra;
   if (!folio) return;
   await A('/api/admin/extra-play', { method: 'POST', body: { folio } });
-  toast(`${folio}: intento extra habilitado`);
+  toast(`${folio}: ronda extra habilitada`);
   loadPeople();
 };
 

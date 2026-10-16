@@ -53,12 +53,14 @@ test('registration issues a unique folio and dedupes by email / retry', async ()
   assert.equal(noConsent.status, 400);
 });
 
-test('play: found owl -> tier, prize, leaderboard; second play blocked', async () => {
+test('play: found owl -> tier, prize, leaderboard; 3 rounds of 3 games, then blocked', async () => {
   const { data: reg } = await call('/api/register', person(3));
   const digits = reg.folio.slice(4);
 
   const look = await call(`/api/participant?folio=${digits}`);
-  assert.equal(look.data.playsLeft, 1);
+  assert.equal(look.data.playsLeft, 9);
+  assert.equal(look.data.round, 1);
+  assert.equal(look.data.game, 1);
 
   const { data: start } = await call('/api/play/start', { folio: digits });
   const { owl } = start.scene;
@@ -68,10 +70,39 @@ test('play: found owl -> tier, prize, leaderboard; second play blocked', async (
   assert.equal(fin.data.tier, 'ULTRA FOCUS');
   assert.match(fin.data.prizeCode, /^OWL-\d{4}$/);
   assert.equal(fin.data.rank, 1);
+  assert.equal(fin.data.roundDone, false);
+  assert.equal(fin.data.game, 1);
+  assert.equal(fin.data.roundMs, Math.round((250 + 10_000 + 10_000) / 3), 'unplayed games count as misses');
 
   const again = await call('/api/play/finish', { playId: start.playId, found: true, ms: 100, tap: { x: owl.x, y: owl.y } });
   assert.equal(again.status, 409);
+
+  // Games 2-3 of round 1: different scenes, no second prize; the round averages all three.
+  const scenes = [start.scene.id];
+  let last;
+  for (let g = 2; g <= 3; g++) {
+    const { data: s } = await call('/api/play/start', { folio: digits });
+    assert.equal(s.round, 1);
+    assert.equal(s.game, g);
+    scenes.push(s.scene.id);
+    await new Promise((r) => setTimeout(r, 300));
+    last = (await call('/api/play/finish', { playId: s.playId, found: true, ms: 250, tap: { x: s.scene.owl.x, y: s.scene.owl.y }, aspect: 0.5625 })).data;
+    assert.equal(last.prizeCode, null, 'one instant prize per folio');
+  }
+  assert.equal(new Set(scenes.map((id) => id.split(/[#~@]/)[0])).size, 3, 'each game in a round uses a different scene');
+  assert.equal(last.roundDone, true);
+  assert.equal(last.roundMs, 250);
+  assert.equal(last.bestMs, 250);
+  assert.equal(last.playsLeft, 6);
+
+  // Rounds 2-3 (all misses) don't hurt the best round; then the folio is out of plays.
+  for (let i = 0; i < 6; i++) {
+    const { data: s } = await call('/api/play/start', { folio: digits });
+    assert.equal(s.round, 2 + Math.floor(i / 3));
+    await call('/api/play/finish', { playId: s.playId, found: false, ms: 10_000 });
+  }
   assert.equal((await call('/api/play/start', { folio: digits })).status, 409);
+  assert.equal((await call(`/api/participant?folio=${digits}`)).data.bestMs, 250);
 
   const lb = await call('/api/leaderboard');
   assert.equal(lb.data[0].folio, reg.folio);
@@ -98,7 +129,7 @@ test('admin: auth, extra play, raffle, export', async () => {
 
   const { data: reg } = await call('/api/register', person(5));
   await call('/api/admin/extra-play', { folio: reg.folio }, admin);
-  assert.equal((await call(`/api/participant?folio=${reg.folio}`)).data.playsLeft, 2);
+  assert.equal((await call(`/api/participant?folio=${reg.folio}`)).data.playsLeft, 12, '+1 ronda = 3 more games');
 
   const d1 = await call('/api/admin/raffle/draw', { label: 'Premio' }, admin);
   assert.equal(d1.data.poolSize, 4);

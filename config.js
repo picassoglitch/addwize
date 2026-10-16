@@ -13,7 +13,10 @@ export const config = {
   kioskKey: env.KIOSK_KEY || '',
 
   timeLimitMs: int(env.TIME_LIMIT_MS, 10_000),
-  maxPlaysPerFolio: int(env.MAX_PLAYS_PER_FOLIO, 1),
+  // Each folio plays this many rounds (staff can grant +1 from admin)...
+  roundsPerFolio: int(env.ROUNDS_PER_FOLIO, 3),
+  // ...of this many games, each in a different scene. A round scores the average of its games.
+  gamesPerRound: int(env.GAMES_PER_ROUND, 3),
   // Instant prize: awarded when the owl is found within this time...
   prizeMaxMs: int(env.PRIZE_MAX_MS, 10_000),
   // ...while stock lasts (0 = unlimited).

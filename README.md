@@ -48,7 +48,8 @@ Set `DATABASE_URL` to point local dev at a Neon branch instead.
 | `ADMIN_PIN` | dev: `4321` | **Required in prod, 8+ chars** |
 | `KIOSK_KEY` | – | Optional. If set, only devices opened once with `?k=KEY` can register or play |
 | `TIME_LIMIT_MS` | `10000` | |
-| `MAX_PLAYS_PER_FOLIO` | `1` | Staff can grant +1 from admin |
+| `ROUNDS_PER_FOLIO` | `3` | Rounds per folio; staff can grant +1 round from admin |
+| `GAMES_PER_ROUND` | `3` | Games per round, each in a different scene. A round scores its average time (miss = time limit); the leaderboard shows each player's best round. One instant prize per folio. |
 | `PRIZE_MAX_MS` | `10000` | Instant prize if found within this time |
 | `PRIZE_STOCK` | `0` | Max instant prizes (0 = unlimited) |
 | `RAFFLE_REQUIRES_PLAY` | off | `1` = only folios that played enter the raffle |

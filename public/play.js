@@ -4,7 +4,7 @@ import { createOwl } from '/owl-rig.js';
 kioskMode();
 
 const HIT_SLOP = 1.35; // must match server.js
-const IDLE = { pin: 30_000, confirm: 25_000, result: 15_000 };
+const IDLE = { pin: 30_000, confirm: 25_000, howto: 40_000, result: 25_000 };
 const CLUTTER = ['📚', '📖', '✏️', '🖍️', '📐', '📏', '🎒', '🧸', '⚽', '🏀', '🚀', '🌵', '🪴', '🎨', '🧩', '🎲',
   '🔭', '🌍', '💡', '⏰', '🧃', '🍎', '🎈', '⭐', '🌙', '🔬', '🪁', '🦆', '🐤', '🐧', '🦜', '🐸', '🦊', '🐻',
   '🐼', '🐨', '🐱', '🦖', '🚗', '🎸', '📎', '🖌️', '🧦', '🍪', '🎁', '🐢', '🦔', '🐿️', '🍂', '🌻'];
@@ -13,10 +13,10 @@ const TIER_CLASS = ['t0', 't1', 't2'];
 const $ = (id) => document.getElementById(id);
 let state = 'attract';
 let idleTimer;
-let config = { timeLimitMs: 10_000, tiers: [] };
+let config = { timeLimitMs: 10_000, gamesPerRound: 3, tiers: [] };
 let lastBoard = [];
 let pendingRaffle = null;
-let player = null; // { folio, name, playsLeft, bestMs }
+let player = null; // { folio, name, playsLeft, round, game, rounds, bestMs }
 
 // Live mascots: one lives on the attract screen, the "host" moves between confirm/result/raffle.
 const attractOwl = createOwl($('attractOwl'));
@@ -52,7 +52,7 @@ document.addEventListener('pointerdown', (e) => {
   const owl = state === 'attract' ? attractOwl : hostOwl;
   owl.lookAt(e.clientX, e.clientY);
   // Every tap gets a reaction: tap the owl for a trick, tap empty space and it flies over to you.
-  if (!['attract', 'confirm', 'result', 'raffle'].includes(state) || !e.isPrimary) return;
+  if (!['attract', 'confirm', 'howto', 'result', 'raffle'].includes(state) || !e.isPrimary) return;
   if (owl.hits(e.clientX, e.clientY)) owl.react();
   else if (!e.target.closest('button, a, input')) owl.flyTo(e.clientX, e.clientY);
 }, true);
@@ -72,7 +72,7 @@ function renderBoard(highlightFolio) {
     <li class="${r.folio === highlightFolio ? 'me' : ''}">
       <span class="r">${r.rank}</span><span>${esc(r.name)}</span><span class="t">${fmtSec(r.ms)} s</span>
     </li>`).join('');
-  $('board').innerHTML = `<h2><span>🏆 LEADERBOARD</span><span>TOP ${lastBoard.length || ''}</span></h2>
+  $('board').innerHTML = `<h2><span>🏆 LEADERBOARD</span><span>MEJOR RONDA · PROMEDIO</span></h2>
     ${rows ? `<ol>${rows}</ol>` : '<div class="empty">Sé el primero en encontrar al búho.</div>'}`;
 }
 
@@ -114,12 +114,17 @@ async function lookup() {
   }
   const first = player.name.split(' ')[0];
   $('cHello').textContent = `¡Hola, ${player.name}!`;
+  const G = config.gamesPerRound;
+  const isNew = player.round === 1 && player.game === 1;
   if (player.playsLeft > 0) {
-    $('cMsg').innerHTML = `Folio <b>${esc(player.folio)}</b>. Tienes <b>${config.timeLimitMs / 1000} segundos</b> para tocar al búho escondido. ¿List@?`;
-    $('cRow').innerHTML = `<button class="btn" id="go">¡SÍ, JUGAR!</button><button class="btn ghost" id="notMe">No soy ${esc(first)}</button>`;
-    $('go').onclick = startGame;
+    $('cMsg').innerHTML = isNew
+      ? `Folio <b>${esc(player.folio)}</b>. Tienes <b>${player.rounds} rondas</b> de ${G} búhos. Antes, una práctica rápida para que veas cómo se juega.`
+      : `Folio <b>${esc(player.folio)}</b>. Vas en la <b>ronda ${player.round} de ${player.rounds}</b>, búho ${player.game} de ${G}.${player.bestMs ? ` Tu mejor promedio: <b>${fmtSec(player.bestMs)} s</b>.` : ''} ¿List@?`;
+    $('cRow').innerHTML = `<button class="btn" id="go">¡SÍ, JUGAR!</button>${isNew ? '' : '<button class="btn ghost" id="demo">Ver demo</button>'}<button class="btn ghost" id="notMe">No soy ${esc(first)}</button>`;
+    $('go').onclick = (e) => (isNew ? openHowto() : startGame(e.currentTarget));
+    if (!isNew) $('demo').onclick = () => openHowto();
   } else {
-    $('cMsg').innerHTML = `Ya jugaste con este folio${player.bestMs ? ` — tu mejor tiempo: <b>${fmtSec(player.bestMs)} s</b>` : ''}.<br>Tu folio sigue participando en la rifa final. 🎟️`;
+    $('cMsg').innerHTML = `Ya jugaste tus ${player.rounds} rondas${player.bestMs ? ` — tu mejor promedio: <b>${fmtSec(player.bestMs)} s</b>` : ''}.<br>Tu folio sigue participando en la rifa final. 🎟️`;
     $('cRow').innerHTML = `<button class="btn" id="notMe">Terminar</button>`;
   }
   $('notMe').onclick = () => show('attract');
@@ -128,13 +133,116 @@ async function lookup() {
   hostOwl.trick('flip');
 }
 
+// ---------- demo: how to play + practice ----------
+// Anyone can open it from the attract screen; a new folio goes through it before round 1.
+// Practice plays never touch the server.
+
+const HOW_STEPS = () => [
+  { icon: '🦉', title: 'Encuentra al búho', text: 'Se esconde en una escena llena de cosas. Tócalo con el dedo lo más rápido que puedas.' },
+  {
+    icon: '⏱️', title: `${player?.rounds ?? 3} rondas × ${config.gamesPerRound} búhos`,
+    text: `Cada búho aparece en una escena distinta y tienes <b>${config.timeLimitMs / 1000} segundos</b> para cada uno. Puedes jugar tus rondas cuando quieras.`,
+    extra: `<div class="rounds">${Array.from({ length: player?.rounds ?? 3 }, (_, i) => `<div>RONDA ${i + 1}<b>${'🦉'.repeat(config.gamesPerRound)}</b></div>`).join('')}</div>`,
+  },
+  {
+    icon: '🏆', title: 'Tu puntaje',
+    text: `Es el <b>promedio</b> de la ronda (si no lo encuentras cuenta como ${config.timeLimitMs / 1000} s). Tu mejor ronda va al leaderboard, y si lo encuentras rápido ganas un <b>premio instantáneo</b>.`,
+  },
+  { icon: '👆', title: '¡Ahora pruébalo!', text: 'Una práctica sin reloj: busca al búho y tócalo. No cuenta para tu puntaje.' },
+];
+
+function openHowto(step = 0) {
+  const steps = HOW_STEPS();
+  const s = steps[step];
+  const last = step === steps.length - 1;
+  $('howCard').outerHTML = `<div class="howCard glass" id="howCard"><div class="big">${s.icon}</div><h2>${s.title}</h2><p>${s.text}</p>${s.extra ?? ''}</div>`;
+  $('howDots').innerHTML = steps.map((_, i) => `<i class="${i === step ? 'on' : ''}" data-step="${i}"></i>`).join('');
+  $('howRow').innerHTML = last
+    ? '<button class="btn" id="howNext">¡PRACTICAR!</button>'
+    : `<button class="btn" id="howNext">Siguiente →</button>${player ? '<button class="btn ghost" id="howSkip">Saltar e ir a jugar</button>' : ''}`;
+  $('howNext').onclick = () => (last ? practice() : openHowto(step + 1));
+  if ($('howSkip')) $('howSkip').onclick = (e) => startGame(e.currentTarget);
+  for (const d of $('howDots').children) d.onclick = () => openHowto(Number(d.dataset.step));
+  if (state !== 'howto') {
+    hostTo($('howtoSlot'));
+    show('howto');
+  }
+  bump();
+  hostOwl.hop(0.12);
+}
+$('demoBtn').onclick = () => { player = null; openHowto(); };
+$('howtoBack').onclick = () => show(player ? 'confirm' : 'attract');
+
+async function practice() {
+  const scene = {
+    type: 'procedural', seed: 1 + Math.floor(Math.random() * 2 ** 30),
+    owl: { x: 0.2 + Math.random() * 0.6, y: 0.3 + Math.random() * 0.45, r: 0.05 }, // a bit bigger than the real thing
+  };
+  game = { practice: true, scene, misses: 0, done: false, cooldownUntil: 0 };
+  show('game');
+  await buildField(scene);
+  for (const c of document.querySelectorAll('#clock, .clockText')) { c.textContent = '∞'; c.classList.remove('low'); }
+  $('barFill').style.transform = 'scaleX(1)';
+  const tag = document.createElement('div');
+  tag.className = 'practiceTag';
+  tag.innerHTML = '<span id="ptText">PRÁCTICA · Toca al búho 🦉</span><button class="btn ghost">Saltar</button>';
+  tag.querySelector('button').onclick = () => practiceDone(false);
+  $('stage').append(tag);
+  game.t0 = performance.now();
+  // Stuck? Point at it after a few seconds. Walked away? Back to the attract screen.
+  game.hintTimer = setTimeout(() => {
+    if (!game?.practice || game.done) return;
+    const r = $('field').getBoundingClientRect();
+    const hint = document.createElement('div');
+    hint.className = 'hint';
+    const d = scene.owl.r * 2 * r.width * 1.6;
+    Object.assign(hint.style, { width: `${d}px`, height: `${d}px`, left: `${r.left + scene.owl.x * r.width}px`, top: `${r.top + scene.owl.y * r.height}px` });
+    $('stage').append(hint);
+    $('ptText').textContent = '¡Pista! Está dentro del círculo 👀';
+  }, 6000);
+  game.idleTimer = setTimeout(() => game?.practice && (clearPractice(), show('attract')), 45_000);
+}
+
+function clearPractice() {
+  clearTimeout(game?.hintTimer);
+  clearTimeout(game?.idleTimer);
+  for (const el of $('stage').querySelectorAll('.practiceTag, .hint, .ring')) el.remove();
+  game = null;
+}
+
+async function practiceDone(found) {
+  game.done = true;
+  if (found) {
+    const ms = performance.now() - game.t0;
+    ringOwl();
+    beep(660, 0.1); setTimeout(() => beep(990, 0.18), 110);
+    await new Promise((ok) => setTimeout(ok, 1100));
+    clearPractice();
+    $('howCard').outerHTML = `<div class="howCard glass" id="howCard"><div class="big">🎉</div><h2>¡Eso es!</h2>
+      <p>Lo encontraste en <b>${fmtSec(ms)} s</b>. Así se juega: en el juego real tienes ${config.timeLimitMs / 1000} s por búho.</p></div>`;
+    confetti(1500);
+    setTimeout(() => hostOwl.happy(), 250);
+  } else {
+    clearPractice();
+    $('howCard').outerHTML = `<div class="howCard glass" id="howCard"><div class="big">🦉</div><h2>¿List@?</h2><p>Recuerda: toca al búho lo más rápido que puedas.</p></div>`;
+  }
+  $('howDots').innerHTML = '';
+  $('howRow').innerHTML = (player
+    ? `<button class="btn" id="howGo">¡A JUGAR! RONDA ${player.round}</button>`
+    : '<button class="btn" id="howGo">JUGAR CON MI FOLIO</button>') + '<button class="btn ghost" id="howAgain">Practicar otra vez</button>';
+  $('howGo').onclick = (e) => (player ? startGame(e.currentTarget) : $('playBtn').onclick());
+  $('howAgain').onclick = practice;
+  hostTo($('howtoSlot'));
+  show('howto');
+}
+
 // ---------- game ----------
 
 let game = null;
 let lastSceneId = null; // the server avoids repeating the previous scene / hiding spot
 
-async function startGame() {
-  $('go').disabled = true;
+async function startGame(btn) {
+  if (btn) btn.disabled = true;
   hostOwl.flap(3, 0.6, 7);
   let start;
   try {
@@ -147,7 +255,7 @@ async function startGame() {
   game = { ...start, misses: 0, done: false, cooldownUntil: 0 };
   show('game');
   await buildField(start.scene);
-  await countdown();
+  await countdown(`<small>RONDA ${start.round} DE ${start.rounds}</small>BÚHO ${start.game}/${config.gamesPerRound}`);
   requestAnimationFrame((t) => {
     game.t0 = t;
     tick(t);
@@ -244,20 +352,21 @@ async function placeOwl(field, src, x, y, heightPx, rotateDeg) {
   await owl.decode().catch(() => {});
 }
 
-function countdown() {
+function countdown(label) {
   return new Promise((resolve) => {
     const el = document.createElement('div');
     el.className = 'count';
     $('stage').append(el);
-    const steps = ['3', '2', '1', '¡YA!'];
+    const steps = [label, '3', '2', '1', '¡YA!'];
     let i = 0;
     const next = () => {
       if (i === steps.length) { el.remove(); return resolve(); }
-      el.classList.toggle('go', i === 3);
+      el.classList.toggle('label', i === 0);
+      el.classList.toggle('go', i === steps.length - 1);
       el.innerHTML = `<div>${steps[i]}</div>`;
-      beep(i === 3 ? 880 : 440, 0.12);
+      if (i > 0) beep(i === steps.length - 1 ? 880 : 440, 0.12);
       i++;
-      setTimeout(next, i === steps.length ? 450 : 800);
+      setTimeout(next, i === 1 ? 1300 : i === steps.length ? 450 : 800);
     };
     next();
   });
@@ -284,7 +393,8 @@ $('stage').addEventListener('pointerdown', (e) => {
   const tap = { x: (e.clientX - r.left) / r.width, y: (e.clientY - r.top) / r.height };
   const { owl } = game.scene;
   const dist = Math.hypot(tap.x - owl.x, (tap.y - owl.y) / (r.width / r.height));
-  if (dist <= owl.r * HIT_SLOP) return finish(true, now - game.t0, tap);
+  if (dist <= owl.r * HIT_SLOP) return game.practice ? practiceDone(true) : finish(true, now - game.t0, tap);
+  if (game.practice && $('ptText') && !$('stage').querySelector('.hint')) $('ptText').textContent = '¡Casi! Sigue buscando 🔍';
 
   // Miss: brief lock-out so wiping the whole screen doesn't work.
   game.misses++;
@@ -334,29 +444,38 @@ async function finish(found, ms, tap) {
 }
 
 function showResult(r) {
+  const G = config.gamesPerRound;
   const tierIdx = config.tiers.findIndex((t) => t.label === r.tier);
-  if (r.found) {
-    $('result').innerHTML = `
-      <h2>¡Lo encontraste!</h2>
+  if (!r.error) Object.assign(player, { playsLeft: r.playsLeft, round: r.round, game: r.game, rounds: r.rounds, bestMs: r.bestMs });
+  const head = r.error ? '' : `<div class="round">RONDA ${r.round} DE ${r.rounds} · BÚHO ${r.game}/${G}</div>`;
+  const body = r.found
+    ? `<h2>¡Lo encontraste!</h2>
       <div class="time">${fmtSec(r.ms)}<small> s</small></div>
       <div class="tier ${TIER_CLASS[tierIdx] ?? 't2'}">${esc(r.tier)}</div>
-      ${r.prizeCode ? `<div class="prize glass"><div class="muted">Código de premio instantáneo</div><div class="code">${esc(r.prizeCode)}</div><div class="muted">Muéstralo al staff del stand</div></div>` : ''}
-      <div class="sub">Lugar <b>#${r.rank}</b> en el leaderboard. Tu folio <b>${esc(player.folio)}</b> participa en la rifa final.</div>
-      <button class="btn ghost" data-go="attract">Terminar</button>`;
-    confetti();
-    $('result').prepend(slotFor());
-    setTimeout(() => hostOwl.happy(), 250);
+      ${r.prizeCode ? `<div class="prize glass"><div class="muted">Código de premio instantáneo</div><div class="code">${esc(r.prizeCode)}</div><div class="muted">Muéstralo al staff del stand</div></div>` : ''}`
+    : `<h2>El búho se escondió.</h2>
+      ${r.error ? '<div class="sub">No pudimos guardar el resultado — avisa al staff.</div>' : `<div class="sub">Cuenta como ${config.timeLimitMs / 1000} s en el promedio de la ronda.</div>`}`;
+
+  let summary = '';
+  let buttons = '<button class="btn ghost" data-go="attract">Terminar</button>';
+  if (r.error) {
+    // nothing more to say
+  } else if (!r.roundDone) {
+    buttons = `<button class="btn" id="next">SIGUIENTE BÚHO (${r.game + 1}/${G}) →</button>` + buttons;
   } else {
-    $('result').innerHTML = `
-      <h2>El búho se escondió.</h2>
-      <div class="sub">${r.error ? 'No pudimos guardar el resultado — avisa al staff. ' : ''}¡Gracias por jugar, ${esc(player.name)}! Tu folio <b>${esc(player.folio)}</b> sigue en la rifa final. 🎟️</div>
-      <button class="btn ghost" data-go="attract">Terminar</button>`;
+    summary = `<div class="sub">Ronda ${r.round} completa · promedio <b>${fmtSec(r.roundMs)} s</b>.
+      ${r.bestMs !== null ? `Tu mejor ronda: <b>${fmtSec(r.bestMs)} s</b> · lugar <b>#${r.rank}</b> en el leaderboard.` : ''}
+      ${r.playsLeft > 0 ? `Te quedan <b>${Math.ceil(r.playsLeft / G)}</b> ronda(s): juega ahora o regresa más tarde con tu folio.` : `Usaste tus ${r.rounds} rondas. Tu folio <b>${esc(player.folio)}</b> sigue en la rifa final. 🎟️`}</div>`;
+    if (r.playsLeft > 0) buttons = `<button class="btn" id="next">JUGAR RONDA ${r.round + 1}</button>` + buttons;
   }
-  if (!r.found) {
-    $('result').prepend(slotFor());
-    setTimeout(() => hostOwl.sad(), 250);
-  }
+  $('result').innerHTML = `${head}${body}${summary}<div class="row">${buttons}</div>`;
+  $('result').prepend(slotFor());
+  if (r.found) {
+    confetti(r.roundDone ? 3500 : 1500);
+    setTimeout(() => hostOwl.happy(), 250);
+  } else setTimeout(() => hostOwl.sad(), 250);
   $('result').querySelector('[data-go]').onclick = () => show('attract');
+  if ($('next')) $('next').onclick = (e) => startGame(e.currentTarget);
   show('result');
 }
 
