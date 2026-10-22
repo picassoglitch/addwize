@@ -30,7 +30,7 @@ export const config = {
     { maxMs: 10_000, label: 'FOCUS COMPLETED' },
   ],
 
-  leaderboardSize: int(env.LEADERBOARD_SIZE, 10),
+  leaderboardSize: int(env.LEADERBOARD_SIZE, 50),
 };
 
 export function configProblems() {

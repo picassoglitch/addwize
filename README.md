@@ -53,7 +53,7 @@ Set `DATABASE_URL` to point local dev at a Neon branch instead.
 | `PRIZE_MAX_MS` | `10000` | Instant prize if found within this time |
 | `PRIZE_STOCK` | `0` | Max instant prizes (0 = unlimited) |
 | `RAFFLE_REQUIRES_PLAY` | off | `1` = only folios that played enter the raffle |
-| `LEADERBOARD_SIZE` | `10` | |
+| `LEADERBOARD_SIZE` | `50` | |
 
 Tiers: 0–3 s **ULTRA FOCUS**, 3–6 s **SHARP FOCUS**, 6–10 s **FOCUS COMPLETED** (`config.js`).
 
