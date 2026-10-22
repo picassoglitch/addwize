@@ -553,7 +553,7 @@ function fillStrip(names, winner) {
   const rows = [];
   while (rows.length < (winner ? 60 : ROW_ITEMS)) rows.push(...shuffle([...base]));
   const list = winner ? [...rows.slice(0, 60), winner, ...shuffle([...base]).slice(0, CENTER + 1)] : rows.slice(0, ROW_ITEMS);
-  strip.innerHTML = list.map((n, i) => `<li${winner && i === 60 ? ' class="win"' : ''}>${esc(n)}</li>`).join('');
+  strip.innerHTML = list.map((n) => `<li>${esc(n)}</li>`).join('');
   return winner ? 60 : -1;
 }
 
@@ -602,6 +602,7 @@ $('rtSpin').onclick = async () => {
     requestAnimationFrame(tick());
     await new Promise((r) => strip.addEventListener('transitionend', r, { once: true }));
     spinning = false;
+    strip.children[idx].classList.add('win'); // colour it only once the wheel has stopped on it
     $('rtWinner').innerHTML = `¡${esc(w.name)}!<small>Folio ${esc(w.folio)}</small>`;
     $('rtCount').textContent = `${rtNames.length} participantes restantes`;
     $('rtSpin').textContent = 'GIRAR OTRA VEZ';
