@@ -557,6 +557,13 @@ function fillStrip(names, winner) {
   return winner ? 60 : -1;
 }
 
+// With nobody left, GIRAR turns into REINICIAR so staff can run the wheel again.
+function syncRuletaButtons() {
+  $('rtSpin').classList.toggle('hidden', !rtNames.length);
+  $('rtReset').classList.toggle('hidden', Boolean(rtNames.length));
+  $('rtSpin').disabled = !rtNames.length;
+}
+
 async function openRuleta() {
   show('ruleta');
   hostOwl.happy?.();
@@ -567,8 +574,8 @@ async function openRuleta() {
   $('rtCount').textContent = 'Cargando participantes…';
   try {
     rtNames = (await api('/api/ruleta')).names;
-    $('rtCount').textContent = `${rtNames.length} participantes registrados`;
-    $('rtSpin').disabled = !rtNames.length;
+    $('rtCount').textContent = rtNames.length ? `${rtNames.length} participantes registrados` : 'Ya salieron todos';
+    syncRuletaButtons();
     fillStrip(rtNames);
   } catch (err) {
     $('rtCount').textContent = err.message;
@@ -613,8 +620,23 @@ $('rtSpin').onclick = async () => {
     spinning = false;
     toast(err.message, { error: true });
   }
-  $('rtSpin').disabled = !rtNames.length;
+  syncRuletaButtons();
   idleTimer = setTimeout(() => state === 'ruleta' && show('attract'), IDLE.ruleta);
+};
+$('rtReset').onclick = async () => {
+  if (spinning) return;
+  $('rtReset').disabled = true;
+  try {
+    rtNames = (await api('/api/ruleta/reset', { method: 'POST', body: {} })).names;
+    $('rtWinner').textContent = '';
+    $('rtSpin').textContent = 'GIRAR';
+    $('rtCount').textContent = `${rtNames.length} participantes de nuevo en la ruleta`;
+    fillStrip(rtNames);
+  } catch (err) {
+    toast(err.message, { error: true });
+  }
+  $('rtReset').disabled = false;
+  syncRuletaButtons();
 };
 $('rtClose').onclick = () => { if (!spinning) show('attract'); };
 
