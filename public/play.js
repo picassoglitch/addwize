@@ -591,7 +591,8 @@ $('rtSpin').onclick = async () => {
   try {
     const w = await api('/api/ruleta/spin', { method: 'POST', body: {} });
     ownDrawId = w.id;
-    rtNames = (await api('/api/ruleta')).names; // the server's pool, in case another screen drew too
+    // The server's pool, in case another screen drew too; if that fetch fails, still show this winner.
+    rtNames = await api('/api/ruleta').then((r) => r.names, () => rtNames.filter((n, i) => i !== rtNames.indexOf(w.name)));
     const strip = $('rtStrip');
     strip.style.transition = 'none';
     strip.style.transform = 'translateY(0)';
