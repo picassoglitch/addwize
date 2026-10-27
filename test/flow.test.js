@@ -153,6 +153,7 @@ test('state endpoint reports leaderboard, newest registration and raffle for pol
 
 test('ruleta: spins until nobody is left, then reset puts everyone back without erasing past draws', async () => {
   let names = (await call('/api/ruleta')).data.names;
+  assert.equal((await call('/api/ruleta/reset', {})).status, 409, 'no reset while players remain');
   while (names.length) {
     assert.equal((await call('/api/ruleta/spin', {})).status, 200);
     names = (await call('/api/ruleta')).data.names;
@@ -162,10 +163,11 @@ test('ruleta: spins until nobody is left, then reset puts everyone back without 
 
   const r = await call('/api/ruleta/reset', {});
   assert.equal(r.status, 200);
-  assert.equal(r.data.names.length, 4, 'every registered player re-enters');
-  assert.equal((await call('/api/ruleta')).data.names.length, 4);
+  // 4 eligible, minus the 2 admin raffle winners from the earlier test, who stay out.
+  assert.equal(r.data.names.length, 2, 'ruleta winners re-enter');
+  assert.equal((await call('/api/ruleta')).data.names.length, 2);
   assert.equal((await call('/api/admin/raffle', undefined, admin)).data.draws.length, before, 'draw history kept');
-  assert.equal((await call('/api/ruleta/spin', {})).data.poolSize, 4);
+  assert.equal((await call('/api/ruleta/spin', {})).data.poolSize, 2);
 });
 
 test('variable scene never repeats the previous hiding spot', async () => {
