@@ -4,7 +4,7 @@ import { createOwl } from '/owl-rig.js';
 kioskMode();
 
 const HIT_SLOP = 1.35; // must match server.js
-const IDLE = { pin: 30_000, confirm: 25_000, howto: 40_000, result: 25_000 };
+const IDLE = { ruleta: 120_000, pin: 30_000, confirm: 25_000, howto: 40_000, result: 25_000 };
 const CLUTTER = ['📚', '📖', '✏️', '🖍️', '📐', '📏', '🎒', '🧸', '⚽', '🏀', '🚀', '🌵', '🪴', '🎨', '🧩', '🎲',
   '🔭', '🌍', '💡', '⏰', '🧃', '🍎', '🎈', '⭐', '🌙', '🔬', '🪁', '🦆', '🐤', '🐧', '🦜', '🐸', '🦊', '🐻',
   '🐼', '🐨', '🐱', '🦖', '🚗', '🎸', '📎', '🖌️', '🧦', '🍪', '🎁', '🐢', '🦔', '🐿️', '🍂', '🌻'];
@@ -53,8 +53,11 @@ document.addEventListener('pointerdown', (e) => {
   owl.lookAt(e.clientX, e.clientY);
   // Every tap gets a reaction: tap the owl for a trick, tap empty space and it flies over to you.
   if (!['attract', 'confirm', 'howto', 'result', 'raffle'].includes(state) || !e.isPrimary) return;
-  if (owl.hits(e.clientX, e.clientY)) owl.react();
-  else if (!e.target.closest('button, a, input')) owl.flyTo(e.clientX, e.clientY);
+  if (owl.hits(e.clientX, e.clientY)) {
+    owl.react();
+    if (state === 'attract') secretTap();
+  }
+  else if (!e.target.closest('button, a, input, #board')) owl.flyTo(e.clientX, e.clientY);
 }, true);
 addEventListener('pointermove', (e) => (state === 'attract' ? attractOwl : hostOwl).lookAt(e.clientX, e.clientY));
 
@@ -74,7 +77,19 @@ function renderBoard(highlightFolio) {
     </li>`).join('');
   $('board').innerHTML = `<h2><span>🏆 LEADERBOARD</span><span>MEJOR RONDA · PROMEDIO</span></h2>
     ${rows ? `<ol>${rows}</ol>` : '<div class="empty">Sé el primero en encontrar al búho.</div>'}`;
+  fitAttract();
 }
+
+// The kiosk page can't scroll: shrink the attract screen's text until it fits; the list scrolls itself.
+function fitAttract() {
+  const screen = $('attract');
+  screen.style.fontSize = '';
+  if (screen.classList.contains('hidden')) return;
+  let px = parseFloat(getComputedStyle(screen).fontSize);
+  const overflows = () => screen.scrollHeight > innerHeight + 1;
+  while (overflows() && px > 9) screen.style.fontSize = `${(px -= 0.5)}px`;
+}
+addEventListener('resize', () => state === 'attract' && fitAttract());
 
 // ---------- pin pad ----------
 
@@ -517,6 +532,121 @@ function runRaffle(data) {
 }
 $('raffle').addEventListener('pointerdown', () => $('reel').classList.contains('win') && show('attract'));
 
+// ---------- ruleta (hidden) ----------
+
+// Staff open it by tapping the attract owl 3 times within 1.5 s; visitors tap it once for a trick.
+let taps = [], ownDrawId = 0, spinning = false;
+function secretTap() {
+  const now = performance.now();
+  taps = [...taps.filter((t) => now - t < 1500), now];
+  if (taps.length >= 3) { taps = []; openRuleta(); }
+}
+
+const ROW_ITEMS = 7, CENTER = 3; // rows visible in the wheel and which one is the winner's slot
+let rtNames = [];
+const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+function fillStrip(names, winner) {
+  const strip = $('rtStrip');
+  const base = names.length ? names : ['—'];
+  // Enough rows to spin through, then the winner lands in the centre slot.
+  const rows = [];
+  while (rows.length < (winner ? 60 : ROW_ITEMS)) rows.push(...shuffle([...base]));
+  const list = winner ? [...rows.slice(0, 60), winner, ...shuffle([...base]).slice(0, CENTER + 1)] : rows.slice(0, ROW_ITEMS);
+  strip.innerHTML = list.map((n) => `<li>${esc(n)}</li>`).join('');
+  return winner ? 60 : -1;
+}
+
+// With nobody left, GIRAR turns into REINICIAR so staff can run the wheel again.
+function syncRuletaButtons() {
+  $('rtSpin').classList.toggle('hidden', !rtNames.length);
+  $('rtReset').classList.toggle('hidden', Boolean(rtNames.length));
+  $('rtSpin').disabled = !rtNames.length;
+}
+
+async function openRuleta() {
+  show('ruleta');
+  hostOwl.happy?.();
+  $('rtWinner').textContent = '';
+  $('rtSpin').textContent = 'GIRAR';
+  $('rtStrip').style.transition = 'none';
+  $('rtStrip').style.transform = 'translateY(0)';
+  $('rtCount').textContent = 'Cargando participantes…';
+  try {
+    rtNames = (await api('/api/ruleta')).names;
+    $('rtCount').textContent = rtNames.length ? `${rtNames.length} participantes registrados` : 'Ya salieron todos';
+    syncRuletaButtons();
+    fillStrip(rtNames);
+  } catch (err) {
+    $('rtCount').textContent = err.message;
+  }
+}
+
+$('rtSpin').onclick = async () => {
+  if (spinning) return;
+  spinning = true;
+  $('rtSpin').disabled = true;
+  $('rtWinner').textContent = '';
+  clearTimeout(idleTimer);
+  try {
+    const w = await api('/api/ruleta/spin', { method: 'POST', body: {} });
+    ownDrawId = w.id;
+    // The server's pool, in case another screen drew too; if that fetch fails, still show this winner.
+    rtNames = await api('/api/ruleta').then((r) => r.names, () => rtNames.filter((n, i) => i !== rtNames.indexOf(w.name)));
+    const strip = $('rtStrip');
+    strip.style.transition = 'none';
+    strip.style.transform = 'translateY(0)';
+    const idx = fillStrip([...rtNames, w.name], w.name);
+    const row = strip.firstElementChild.getBoundingClientRect().height;
+    const target = strip.children[idx].getBoundingClientRect().top - strip.getBoundingClientRect().top - CENTER * row;
+    strip.style.transition = 'transform 6s cubic-bezier(0.12, 0.8, 0.1, 1)';
+    strip.style.transform = `translateY(${-target}px)`;
+    let last = 0;
+    const tick = (t0) => (t) => { // a click per row passing the marker
+      const y = -new DOMMatrix(getComputedStyle(strip).transform).m42 / row | 0;
+      if (y !== last) { last = y; beep(320 + (y % 2) * 60, 0.02); }
+      if (spinning) requestAnimationFrame(tick(t0));
+    };
+    requestAnimationFrame(tick());
+    // transitionend never fires if the tab was hidden mid-spin; don't leave the kiosk stuck.
+    await new Promise((r) => { strip.addEventListener('transitionend', r, { once: true }); setTimeout(r, 6500); });
+    spinning = false;
+    strip.children[idx].classList.add('win'); // colour it only once the wheel has stopped on it
+    $('rtWinner').innerHTML = `¡${esc(w.name)}!<small>Folio ${esc(w.folio)}</small>`;
+    $('rtCount').textContent = `${rtNames.length} participantes restantes`;
+    $('rtSpin').textContent = 'GIRAR OTRA VEZ';
+    confetti(6000);
+    beep(990, 0.4);
+    hostOwl.happy?.();
+  } catch (err) {
+    spinning = false;
+    toast(err.message, { error: true });
+    if (err.status === 409) rtNames = (await api('/api/ruleta').catch(() => ({ names: rtNames }))).names;
+  }
+  syncRuletaButtons();
+  idleTimer = setTimeout(() => state === 'ruleta' && show('attract'), IDLE.ruleta);
+};
+$('rtReset').onclick = async () => {
+  if (spinning) return;
+  $('rtReset').disabled = true;
+  try {
+    rtNames = (await api('/api/ruleta/reset', { method: 'POST', body: {} })).names;
+    $('rtWinner').textContent = '';
+    $('rtSpin').textContent = 'GIRAR';
+    $('rtCount').textContent = `${rtNames.length} participantes de nuevo en la ruleta`;
+    $('rtStrip').style.transition = 'none';
+    $('rtStrip').style.transform = 'translateY(0)';
+    fillStrip(rtNames);
+  } catch (err) {
+    toast(err.message, { error: true });
+    // 409 can mean another screen already reset: show the server's pool.
+    if (err.status === 409) rtNames = (await api('/api/ruleta').catch(() => ({ names: rtNames }))).names;
+  }
+  $('rtReset').disabled = false;
+  syncRuletaButtons();
+};
+$('rtClose').onclick = () => { if (!spinning) show('attract'); };
+
 // ---------- fx ----------
 
 let actx;
@@ -568,7 +698,8 @@ liveEvents({
     toast(`¡Bienvenid@, ${name}! Toca JUGAR e ingresa tu folio.`);
     attractOwl.hop();
   },
-  raffle: (d) => (['attract', 'pin', 'confirm', 'raffle'].includes(state) ? runRaffle(d) : (pendingRaffle = d)),
+  // On the ruleta screen its own spins are already on show; any other draw waits for attract.
+  raffle: (d) => (d.id === ownDrawId || (state === 'ruleta' && d.label === 'Ruleta')) ? null : (['attract', 'pin', 'confirm', 'raffle'].includes(state) ? runRaffle(d) : (pendingRaffle = d)),
 });
 api('/api/config').then((c) => (config = c)).catch(() => {});
 show('attract');

@@ -7,7 +7,7 @@
   <link rel="icon" type="image/png" href="/img/favicon-64.png">
   <link rel="stylesheet" href="/app.css">
   <style>
-    html, body { overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+    html, body { overflow: hidden; height: 100dvh; touch-action: none; user-select: none; -webkit-user-select: none; }
     body { font-size: clamp(16px, 2.2vmin, 28px); }
     .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4vmin; text-align: center; }
 
@@ -17,12 +17,18 @@
     #attract .logo { font-size: 2.2em; }
     #attract h1 { font-size: 4.4em; line-height: 0.95; margin: 0; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase; }
     #attract h1 span { color: var(--orange); display: block; }
-    #attract .owl { width: 38vmin; margin: -3vmin 0; filter: drop-shadow(0 20px 40px rgba(123,79,214,.6)); position: relative; z-index: 3; }
+    #attract .owl { width: min(38vmin, 22vh); margin: -3vmin 0; filter: drop-shadow(0 20px 40px rgba(123,79,214,.6)); position: relative; z-index: 3; }
     .hostSlot { width: 26vmin; margin: -2vmin auto; filter: drop-shadow(0 16px 30px rgba(123,79,214,.5)); position: relative; z-index: 3; }
     @keyframes bob { 50% { transform: translateY(-3vmin) rotate(-4deg); } }
     #attract .how { display: flex; gap: 2vmin; flex-wrap: wrap; justify-content: center; }
     #attract .how div { padding: 1.4vmin 2.4vmin; font-weight: 600; }
     #attract .how b { color: var(--orange); }
+    /* The board takes whatever height is left so it never drops below the screen; lower ranks clip first. */
+    #attract .board { flex: 0 1 auto; min-height: 9em; display: flex; flex-direction: column; overflow: hidden; }
+    /* The page is locked for the kiosk; only the list scrolls, by touch, with a fade hinting there's more. */
+    #attract .board ol { flex: 1 1 auto; min-height: 0; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain;
+      scrollbar-width: none; -webkit-mask-image: linear-gradient(#000 calc(100% - 2.5em), transparent); mask-image: linear-gradient(#000 calc(100% - 2.5em), transparent); padding-bottom: 2em; }
+    #attract .board ol::-webkit-scrollbar { display: none; }
     .cta { font-size: 1.8em; padding: 0.7em 2.4em; animation: pulse 1.6s ease-in-out infinite; }
     @keyframes pulse { 50% { transform: scale(1.06); box-shadow: 0 0 60px rgba(255,159,28,.6); } }
 
@@ -151,6 +157,21 @@
     .reel.win { color: var(--orange); box-shadow: 0 0 120px rgba(255,159,28,.7); animation: pop .8s ease-out; }
     #raffle .wname { font-size: 2.6em; font-weight: 800; min-height: 1.2em; }
     canvas#confetti { position: fixed; inset: 0; z-index: 60; pointer-events: none; }
+    /* ---------- ruleta (hidden: owl tapped 3 times) ---------- */
+    #ruleta { gap: 2.4vmin; z-index: 50; background: radial-gradient(circle at 50% 40%, #3b1f8f, var(--navy) 70%); }
+    #ruleta h2 { font-size: 3em; margin: 0; font-weight: 900; text-transform: uppercase; line-height: 1; }
+    #ruleta h2 span { color: var(--orange); }
+    #ruleta .tally { color: var(--muted); font-size: 1.2em; }
+    .wheel { font-size: 1.7em; --row: 1.6em; position: relative; width: min(88vw, 760px); height: calc(var(--row) * 7); overflow: hidden; border-radius: 28px;
+      -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent); mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent); }
+    .wheel::before { content: ''; position: absolute; left: 0; right: 0; top: calc(var(--row) * 3); height: var(--row); box-sizing: border-box; z-index: 1; pointer-events: none;
+      border-block: 3px solid var(--orange); background: rgba(255,159,28,.12); border-radius: 14px; }
+    .wheel ol { list-style: none; margin: 0; padding: 0; will-change: transform; }
+    .wheel li { height: var(--row); display: grid; place-items: center; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 .6em; }
+    .wheel li.win { color: var(--orange); font-weight: 900; }
+    #ruleta .wname { font-size: 2.6em; font-weight: 900; min-height: 1.3em; color: var(--orange); }
+    #ruleta .wname small { display: block; font-size: .45em; color: var(--muted); font-weight: 600; }
+    #ruleta .row { display: flex; gap: 2vmin; }
   </style>
 </head>
 <body>
@@ -219,6 +240,19 @@
     <div class="hostSlot" id="raffleSlot"></div>
     <div class="reel" id="reel">ADD-0000</div>
     <div class="wname" id="rName"></div>
+  </section>
+
+  <!-- RULETA (hidden: tap the owl 3 times on the attract screen) -->
+  <section id="ruleta" class="screen hidden">
+    <h2>La ruleta <span>Addwize</span></h2>
+    <div class="tally" id="rtCount"></div>
+    <div class="wheel"><ol id="rtStrip"></ol></div>
+    <div class="wname" id="rtWinner"></div>
+    <div class="row">
+      <button class="btn cta" id="rtSpin">GIRAR</button>
+      <button class="btn cta hidden" id="rtReset">REINICIAR</button>
+      <button class="btn ghost" id="rtClose">Cerrar</button>
+    </div>
   </section>
 
   <canvas id="confetti"></canvas>
