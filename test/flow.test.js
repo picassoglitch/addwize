@@ -187,6 +187,7 @@ test('plays vary: mirrored scenes, lighting moods and owl sizes, with the hit ta
     const { data: reg } = await call('/api/register', person(n));
     const { data } = await call('/api/play/start', { folio: reg.folio });
     ids.add(data.scene.id.split('@')[0]);
+    assert.ok(data.scene.sprite, 'always the brand owl sprite, never a painted-in owl');
     moods.add(data.scene.mood);
     sizes.add(data.scene.owl.r);
     if (data.scene.mirror) {

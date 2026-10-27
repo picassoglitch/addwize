@@ -591,7 +591,7 @@ $('rtSpin').onclick = async () => {
   try {
     const w = await api('/api/ruleta/spin', { method: 'POST', body: {} });
     ownDrawId = w.id;
-    rtNames = rtNames.filter((n, i) => i !== rtNames.indexOf(w.name)); // winners don't re-enter
+    rtNames = (await api('/api/ruleta')).names; // the server's pool, in case another screen drew too
     const strip = $('rtStrip');
     strip.style.transition = 'none';
     strip.style.transform = 'translateY(0)';
@@ -607,7 +607,8 @@ $('rtSpin').onclick = async () => {
       if (spinning) requestAnimationFrame(tick(t0));
     };
     requestAnimationFrame(tick());
-    await new Promise((r) => strip.addEventListener('transitionend', r, { once: true }));
+    // transitionend never fires if the tab was hidden mid-spin; don't leave the kiosk stuck.
+    await new Promise((r) => { strip.addEventListener('transitionend', r, { once: true }); setTimeout(r, 6500); });
     spinning = false;
     strip.children[idx].classList.add('win'); // colour it only once the wheel has stopped on it
     $('rtWinner').innerHTML = `¡${esc(w.name)}!<small>Folio ${esc(w.folio)}</small>`;
@@ -619,6 +620,7 @@ $('rtSpin').onclick = async () => {
   } catch (err) {
     spinning = false;
     toast(err.message, { error: true });
+    if (err.status === 409) rtNames = (await api('/api/ruleta').catch(() => ({ names: rtNames }))).names;
   }
   syncRuletaButtons();
   idleTimer = setTimeout(() => state === 'ruleta' && show('attract'), IDLE.ruleta);
@@ -631,9 +633,13 @@ $('rtReset').onclick = async () => {
     $('rtWinner').textContent = '';
     $('rtSpin').textContent = 'GIRAR';
     $('rtCount').textContent = `${rtNames.length} participantes de nuevo en la ruleta`;
+    $('rtStrip').style.transition = 'none';
+    $('rtStrip').style.transform = 'translateY(0)';
     fillStrip(rtNames);
   } catch (err) {
     toast(err.message, { error: true });
+    // 409 can mean another screen already reset: show the server's pool.
+    if (err.status === 409) rtNames = (await api('/api/ruleta').catch(() => ({ names: rtNames }))).names;
   }
   $('rtReset').disabled = false;
   syncRuletaButtons();
@@ -691,7 +697,8 @@ liveEvents({
     toast(`¡Bienvenid@, ${name}! Toca JUGAR e ingresa tu folio.`);
     attractOwl.hop();
   },
-  raffle: (d) => (d.id === ownDrawId || state === 'ruleta') ? null : (['attract', 'pin', 'confirm', 'raffle'].includes(state) ? runRaffle(d) : (pendingRaffle = d)),
+  // On the ruleta screen its own spins are already on show; any other draw waits for attract.
+  raffle: (d) => (d.id === ownDrawId || (state === 'ruleta' && d.label === 'Ruleta')) ? null : (['attract', 'pin', 'confirm', 'raffle'].includes(state) ? runRaffle(d) : (pendingRaffle = d)),
 });
 api('/api/config').then((c) => (config = c)).catch(() => {});
 show('attract');
