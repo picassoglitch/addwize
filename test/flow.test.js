@@ -127,7 +127,9 @@ test('admin: auth, extra play, raffle, export', async () => {
   const stats = await call('/api/admin/stats', undefined, admin);
   assert.equal(stats.data.participants, 3);
 
-  const { data: reg } = await call('/api/register', person(5));
+  assert.equal(stats.data.visitedByRep, 0, 'unchecked box defaults to not visited');
+  const { data: reg } = await call('/api/register', { ...person(5), visitedByRep: true });
+  assert.equal((await call('/api/admin/stats', undefined, admin)).data.visitedByRep, 1);
   await call('/api/admin/extra-play', { folio: reg.folio }, admin);
   assert.equal((await call(`/api/participant?folio=${reg.folio}`)).data.playsLeft, 12, '+1 ronda = 3 more games');
 
@@ -139,6 +141,10 @@ test('admin: auth, extra play, raffle, export', async () => {
 
   const csv = await call('/api/admin/export?what=participants', undefined, admin);
   assert.match(csv.data, /folio,name,email/);
+  const [header, ...rows] = csv.data.trim().split('\n');
+  const col = header.split(',').indexOf('visited_by_rep');
+  assert.ok(col > 0, 'export has visited_by_rep column');
+  assert.equal(rows.find((r) => r.startsWith(reg.folio)).split(',')[col], 'true');
   assert.equal(csv.data.trim().split('\n').length, 5);
 });
 
