@@ -51,6 +51,11 @@ test('registration issues a unique folio and dedupes by email / retry', async ()
 
   const noConsent = await call('/api/register', { ...person(2), consentPrivacy: false });
   assert.equal(noConsent.status, 400);
+
+  // A repeat registration returns the first folio and keeps its answers.
+  const again = await call('/api/register', { ...person(1), reqId: 'third', visitedByRep: true });
+  assert.equal(again.data.existing, true);
+  assert.equal((await call('/api/admin/stats', undefined, admin)).data.visitedByRep, 0);
 });
 
 test('play: found owl -> tier, prize, leaderboard; 3 rounds of 3 games, then blocked', async () => {
@@ -127,7 +132,9 @@ test('admin: auth, extra play, raffle, export', async () => {
   const stats = await call('/api/admin/stats', undefined, admin);
   assert.equal(stats.data.participants, 3);
 
-  const { data: reg } = await call('/api/register', person(5));
+  assert.equal(stats.data.visitedByRep, 0, 'unchecked box defaults to not visited');
+  const { data: reg } = await call('/api/register', { ...person(5), visitedByRep: true });
+  assert.equal((await call('/api/admin/stats', undefined, admin)).data.visitedByRep, 1);
   await call('/api/admin/extra-play', { folio: reg.folio }, admin);
   assert.equal((await call(`/api/participant?folio=${reg.folio}`)).data.playsLeft, 12, '+1 ronda = 3 more games');
 
@@ -139,6 +146,11 @@ test('admin: auth, extra play, raffle, export', async () => {
 
   const csv = await call('/api/admin/export?what=participants', undefined, admin);
   assert.match(csv.data, /folio,name,email/);
+  const [header, ...rows] = csv.data.trim().split('\n');
+  const col = header.split(',').indexOf('visited_by_rep');
+  assert.ok(col > 0, 'export has visited_by_rep column');
+  assert.equal(rows.find((r) => r.startsWith(`${reg.folio},`)).split(',')[col], 'true');
+  assert.equal(rows.filter((r) => r.split(',')[col] === 'false').length, rows.length - 1);
   assert.equal(csv.data.trim().split('\n').length, 5);
 });
 

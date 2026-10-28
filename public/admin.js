@@ -51,6 +51,7 @@ async function loadStats() {
     kpi(s.avgMs ? `${fmtSec(s.avgMs)} s` : '–', 'Tiempo promedio'),
     kpi(`${s.prizesRedeemed}/${s.prizesGiven}`, `Premios entregados${s.prizeStock ? ` · stock ${s.prizeStock}` : ''}`),
     kpi(s.marketingConsent, 'Aceptan contacto comercial'),
+    kpi(s.visitedByRep, 'Visitados por Sun Pharma'),
     kpi(s.rafflePool, 'Elegibles para rifa'),
     ...s.tiers.map((t) => kpi(t.n, t.tier)),
   ].join('');

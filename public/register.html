@@ -30,6 +30,10 @@
     .check { display: flex; gap: 12px; align-items: flex-start; font-size: 0.95rem; line-height: 1.35; }
     .check input { width: 26px; height: 26px; flex: none; margin: 0; accent-color: var(--orange); -webkit-appearance: auto; appearance: auto; }
     .check a { color: var(--orange); }
+    .check.boxed {
+      align-items: center; padding: 12px 16px; border-radius: 14px; font-weight: 600;
+      border: 2px solid rgba(255, 159, 28, 0.7); background: rgba(255, 159, 28, 0.08);
+    }
     .actions { display: flex; justify-content: flex-end; align-items: center; gap: 16px; }
     .error { color: var(--danger); font-weight: 600; min-height: 1.2em; }
     @media (max-width: 560px) { form { grid-template-columns: 1fr; } }
@@ -136,6 +140,10 @@
           <input type="checkbox" name="consentMarketing">
           <span>Acepto recibir información científica y comercial de Sun Pharma por correo o WhatsApp. <span class="muted">(opcional)</span></span>
         </label>
+        <label class="check boxed full">
+          <input type="checkbox" name="visitedByRep">
+          <span>Te ha visitado el equipo de Sun Pharma</span>
+        </label>
 
         <div class="full actions">
           <span class="error" id="err"></span>
@@ -192,7 +200,7 @@
     form.onsubmit = async (e) => {
       e.preventDefault();
       const f = Object.fromEntries(new FormData(form));
-      const body = { ...f, consentPrivacy: !!f.consentPrivacy, consentMarketing: !!f.consentMarketing, reqId };
+      const body = { ...f, consentPrivacy: !!f.consentPrivacy, consentMarketing: !!f.consentMarketing, visitedByRep: !!f.visitedByRep, reqId };
       if (!f.specialty) return ($('err').textContent = 'Selecciona tu especialidad');
       $('err').textContent = '';
       $('submit').disabled = true;
